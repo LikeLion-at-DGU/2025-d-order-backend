@@ -16,10 +16,18 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,  # access + refresh 발급
+    TokenRefreshView,     # refresh로 access 재발급
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('booth.urls')),
     path('api/', include('manager.urls')),
     path('api/', include('order.urls')),
+
+
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'), # 토근 발급용 임시 api
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

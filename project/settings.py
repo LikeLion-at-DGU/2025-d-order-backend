@@ -44,6 +44,8 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'corsheaders',
+    'rest_framework_simplejwt',
+    "rest_framework_simplejwt.token_blacklist",
 
     #app
     'booth',
@@ -51,11 +53,15 @@ INSTALLED_APPS = [
     'order'
 ]
 
+SIMPLE_JWT = {
+    "BLACKLIST_AFTER_ROTATION": True,
+}
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
-        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
