@@ -93,3 +93,51 @@ class LoginSerializer(serializers.Serializer):
                 "refresh": str(refresh)
             }
         }
+
+class ManagerMyPageSerializer(serializers.ModelSerializer):
+    booth_name = serializers.CharField(source='booth.name', required=False)
+    seat_tax_person = serializers.IntegerField(required=False, allow_null=True)
+    seat_tax_table = serializers.IntegerField(required=False, allow_null=True)
+
+    class Meta:
+        model = Manager
+        fields = [
+            "user",
+            "booth",
+            "booth_name",
+            "table_num",
+            "order_check_password",
+            "account",
+            "depositor",
+            "bank",
+            "seat_type",
+            "seat_tax_person",
+            "seat_tax_table"
+        ]
+        read_only_fields = ["user", "booth", "booth_name"]
+
+    def validate(self, attrs):
+        seat_type = attrs.get("seat_type", getattr(self.instance, "seat_type", None))
+        person = attrs.get("seat_tax_person", getattr(self.instance, "seat_tax_person", None))
+        table = attrs.get("seat_tax_table", getattr(self.instance, "seat_tax_table", None))
+
+        if seat_type == "PP" and person in (None, ''):
+            raise serializers.ValidationError({
+                "message": "seat_type이 'seat tax per person'일 경우 seat_tax_person은 필수입니다.",
+                "code": 400
+            })
+
+        if seat_type == "PT" and table in (None, ''):
+            raise serializers.ValidationError({
+                "message": "seat_type이 'seat tax per table'일 경우 seat_tax_table은 필수입니다.",
+                "code": 400
+            })
+
+        if seat_type == "NO":
+            if person not in (None, '') or table not in (None, ''):
+                raise serializers.ValidationError({
+                    "message": "seat_type이 'no seat tax'일 경우 seat_tax_person, seat_tax_table은 NULL값이어야함.",
+                    "code": 400
+                })
+
+        return attrs
