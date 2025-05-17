@@ -3,8 +3,12 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework.exceptions import ValidationError 
-from .serializers import LoginSerializer,SignupSerializer
+from .serializers import LoginSerializer,SignupSerializer,ManagerMyPageSerializer
 from django.contrib.auth.models import User
+from rest_framework.generics import RetrieveUpdateAPIView
+from .serializers import ManagerMyPageSerializer
+from manager.models import Manager
+from rest_framework.permissions import IsAuthenticated
 
 
 class ManagerSignupView(APIView):
@@ -59,3 +63,34 @@ class ManagerLogoutView(APIView):
             return Response({"message": "Refresh token이 필요합니다."}, status=400)
         except TokenError:
             return Response({"message": "유효하지 않은 토큰입니다."}, status=400)
+        
+
+
+
+
+class ManagerMyPageView(RetrieveUpdateAPIView):
+    serializer_class = ManagerMyPageSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return Manager.objects.get(user=self.request.user)
+
+    def get(self,request):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response({
+            "message": "관리자 정보를 불러왔습니다.",
+            "code": 201,
+            "data": serializer.data
+        }, status=201)
+
+    def patch(self, request):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response({
+            "message": "관리자 정보가 수정되었습니다.",
+            "code": 200,
+            "data": serializer.data
+        }, status=200)

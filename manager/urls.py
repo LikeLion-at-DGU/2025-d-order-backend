@@ -8,5 +8,6 @@ urlpatterns = [
     path('manager/logout/', ManagerLogoutView.as_view()),
     path('manager/check/', UsernameCheckView.as_view()),
     path('manager/signup/', ManagerSignupView.as_view()),
+    path('manager/mypage/',ManagerMyPageView.as_view()),
 
 ]
