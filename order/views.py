@@ -4,9 +4,21 @@ from rest_framework import status
 from booth.models import Booth, Table
 from order.models import Cart, Order, Menu
 from django.shortcuts import get_object_or_404
+from .serializers import *
+
 
 class AddToCartView(APIView):
     def post(self, request):
+
+        serializer = AddToCartRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                "status": "fail",
+                "message": serializer.errors,
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        validated_data = serializer.validated_data
         booth_id = request.data.get('booth_id')
         table_num = request.data.get('table_num')
         menu_id = request.data.get('menu_id')
@@ -78,3 +90,31 @@ class AddToCartView(APIView):
                 "menu_num": order.menu_num
             }
         }, status=status.HTTP_201_CREATED)
+
+class TableCartView(APIView):
+    def get(self, request, table_id):
+        table = get_object_or_404(Table, id=table_id)
+
+        try:
+            cart = Cart.objects.get(table_id=table, cart_status=False)
+        except Cart.DoesNotExist:
+            return Response({
+                "status": "fail",
+                "message": "장바구니가 존재하지 않습니다.",
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        orders = Order.objects.filter(cart_id=cart).select_related('menu_id')
+        serializer = OrderSummarySerializer(orders, many=True)
+
+        return Response({
+            "status": "success",
+            "message": "장바구니 조회 완료",
+            "code": 200,
+            "data": {
+                "cart_id": cart.id,
+                "table_id": table.id,
+                "total_price": cart.total_price,
+                "orders": serializer.data
+            }
+        }, status=status.HTTP_200_OK)
