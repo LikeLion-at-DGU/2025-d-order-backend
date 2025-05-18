@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from .serializers import *
 from django.db.models import Sum, F
 from django.utils.timezone import now
+from rest_framework.permissions import IsAuthenticated
 
 
 class AddToCartView(APIView):
@@ -208,3 +209,31 @@ class OrderFixView(APIView):
                 "cart_status": cart.cart_status
             }
         }, status=status.HTTP_200_OK)
+    
+class MenuCreateView(APIView):
+    permission_classes = [IsAuthenticated]  #로그인한 사람만 등록 가능
+    def post(self, request):
+        serializer = MenuSerializer(data=request.data)
+        if serializer.is_valid():
+            menu = serializer.save()
+            return Response({
+                "status": "success",
+                "message": "메뉴가 등록되었습니다.",
+                "code": 201,
+                "data": {
+                    "booth_id": menu.booth_id.id,
+                    "menu_id": menu.id,
+                    "menu_name": menu.menu_name,
+                    "menu_category": menu.menu_category,
+                    "menu_price": menu.menu_price,
+                    "menu_amount": menu.menu_amount,
+                    "menu_remain": menu.menu_remain,
+                    "menu_image": menu.menu_image.url if menu.menu_image else None
+                }
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            "status": "fail",
+            "message": "유효하지 않은 요청입니다.",
+            "code": 400,
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)

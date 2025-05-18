@@ -65,3 +65,13 @@ class BoothOrderSerializer(serializers.ModelSerializer):
             'table_num'
         ]
 
+class MenuSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Menu
+        fields = '__all__'
+
+    def validate_menu_category(self, value):
+        if value not in ['음료', '메뉴']:
+            raise serializers.ValidationError("menu_category는 '음료' 또는 '메뉴' 중 하나여야 합니다.")
+        return value
+    menu_image = serializers.ImageField(use_url=True, required=False)
