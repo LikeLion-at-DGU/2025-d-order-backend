@@ -105,7 +105,7 @@ class TableCartView(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
 
         orders = Order.objects.filter(cart_id=cart).select_related('menu_id')
-        serializer = OrderSummarySerializer(orders, many=True)
+        serializer = CartSummarySerializer(orders, many=True)
 
         return Response({
             "status": "success",
@@ -117,4 +117,27 @@ class TableCartView(APIView):
                 "total_price": cart.total_price,
                 "orders": serializer.data
             }
+        }, status=status.HTTP_200_OK)
+    
+class TableOrderView(APIView):
+    def get(self, request, table_id):
+        table = get_object_or_404(Table, id=table_id)
+
+        carts = Cart.objects.filter(table_id=table, cart_status=True)
+
+        if not carts.exists():
+            return Response({
+                "stats": "fail",
+                "message": "완료된 주문이 없습니다",
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        orders = Order.objects.filter(cart_id__in=carts).select_related('menu_id')
+        serializer = TableOrderSerializer(orders, many=True)
+
+        return Response({
+            "status": "success",
+            "message": "주문 내역 조회 완료",
+            "code": 200,
+            "data": serializer.data
         }, status=status.HTTP_200_OK)
