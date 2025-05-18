@@ -6,6 +6,7 @@ from order.models import Cart, Order, Menu
 from django.shortcuts import get_object_or_404
 from .serializers import *
 from django.db.models import Sum, F
+from django.utils.timezone import now
 
 
 class AddToCartView(APIView):
@@ -175,3 +176,35 @@ class BoothOrderView(APIView):
             }
         }, status=status.HTTP_200_OK)
     
+class OrderFixView(APIView):
+    def patch(self, request, cart_id):
+        cart = get_object_or_404(Cart, id=cart_id)
+
+        cart_status = request.data.get('cart_status')
+        
+        if cart.cart_status:
+            return Response({
+                "status": "fail",
+                "message": "이미 확정된 주문입니다.",
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        cart.cart_status= True
+        cart.save()
+
+        orders = Order.objects.filter(cart_id=cart)
+        now_time = now()
+        for order in orders:
+            order.order_status = 'order_complete'
+            order.created_at = now_time
+            order.save()
+
+        return Response({
+            "status": "success",
+            "message": "주문이 확정되었습니다.",
+            "code": 200,
+            "data": {
+                "cart_id": cart.id,
+                "cart_status": cart.cart_status
+            }
+        }, status=status.HTTP_200_OK)
