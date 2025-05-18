@@ -54,7 +54,7 @@ class AddToCartView(APIView):
             order = Order.objects.get(cart_id=cart, menu_id=menu)
             total_menu_num = order.menu_num + menu_num
 
-            if total_menu_num > menu.menu_amount:
+            if total_menu_num > menu.menu_remain:
                 return Response({
                     "status": "fail",
                     "message": "주문 수량이 재고를 초과했습니다.",
@@ -65,7 +65,7 @@ class AddToCartView(APIView):
             order.save()
 
         except Order.DoesNotExist:
-            if menu_num > menu.menu_amount:
+            if menu_num > menu.menu_remain:
                 return Response({
                     "status": "fail",
                     "message": "주문 수량이 재고를 초과했습니다.",
@@ -192,15 +192,30 @@ class OrderFixView(APIView):
                 "code": 400
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        cart.cart_status= True
-        cart.save()
+        orders = Order.objects.filter(cart_id=cart).select_related('menu_id')
 
-        orders = Order.objects.filter(cart_id=cart)
+        for order in orders:
+            menu = order.menu_id
+            if order.menu_num > menu.menu_remain:
+                return Response({
+                    "status": "fail",
+                    "message": f"재고가 부족합니다.",
+                    "code": 400
+                }, status=status.HTTP_400_BAD_REQUEST)
+
         now_time = now()
         for order in orders:
+            menu = order.menu_id
+            menu.menu_remain -= order.menu_num
+            menu.save()
+
             order.order_status = 'order_complete'
             order.created_at = now_time
             order.save()
+
+        cart.cart_status = True
+        cart.save()
+
 
         return Response({
             "status": "success",
@@ -210,6 +225,24 @@ class OrderFixView(APIView):
                 "cart_id": cart.id,
                 "cart_status": cart.cart_status
             }
+        }, status=status.HTTP_200_OK)
+    
+class UpdateOrderStatusView(APIView):
+    def patch(self, request, order_id):
+        order = get_object_or_404(Order, id=order_id)
+
+        new_status = request.data.get('order_status')
+
+        order.order_status = 'served_complete'
+        order.save()
+
+        serializer = TableOrderSerializer(order)
+
+        return Response({
+            "status": "success",
+            "message": "서빙 완료로 변경되었습니다.",
+            "code": 200,
+            "data": serializer.data
         }, status=status.HTTP_200_OK)
 
 #메뉴 등록 기능
@@ -242,6 +275,8 @@ class MenuCreateView(APIView):
             "code": 400,
             "errors": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+    
+
     
 #메뉴 수정,삭제
 class MenuPatchDeleteView(
@@ -318,3 +353,5 @@ class MenuListView(APIView):
             "code": 200,
             "data": menu_data
         }, status=200)
+
+
