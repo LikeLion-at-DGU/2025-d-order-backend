@@ -64,3 +64,4 @@ class BoothOrderSerializer(serializers.ModelSerializer):
             'created_at',
             'table_num'
         ]
+
