@@ -68,7 +68,7 @@ class BoothOrderSerializer(serializers.ModelSerializer):
 class MenuSerializer(serializers.ModelSerializer):
     class Meta:
         model = Menu
-        fields = '__all__'
+        fields = ['id', 'menu_name', 'menu_category', 'menu_price', 'menu_amount', 'menu_remain', 'menu_image']
 
     def validate_menu_category(self, value):
         if value not in ['음료', '메뉴']:

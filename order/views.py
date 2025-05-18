@@ -1,6 +1,8 @@
 from rest_framework.views import APIView
+from rest_framework import mixins, generics
 from rest_framework.response import Response
 from rest_framework import status
+from manager.models import Manager
 from booth.models import Booth, Table
 from order.models import Cart, Order, Menu
 from django.shortcuts import get_object_or_404
@@ -224,13 +226,34 @@ class OrderFixView(APIView):
                 "cart_status": cart.cart_status
             }
         }, status=status.HTTP_200_OK)
+    
+class UpdateOrderStatusView(APIView):
+    def patch(self, request, order_id):
+        order = get_object_or_404(Order, id=order_id)
 
+        new_status = request.data.get('order_status')
+
+        order.order_status = 'served_complete'
+        order.save()
+
+        serializer = TableOrderSerializer(order)
+
+        return Response({
+            "status": "success",
+            "message": "서빙 완료로 변경되었습니다.",
+            "code": 200,
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+
+#메뉴 등록 기능
 class MenuCreateView(APIView):
     permission_classes = [IsAuthenticated]  #로그인한 사람만 등록 가능
+    #메뉴 등록
     def post(self, request):
         serializer = MenuSerializer(data=request.data)
+        manager = Manager.objects.get(user=request.user)
         if serializer.is_valid():
-            menu = serializer.save()
+            menu = serializer.save(booth_id=manager.booth)
             return Response({
                 "status": "success",
                 "message": "메뉴가 등록되었습니다.",
@@ -252,21 +275,83 @@ class MenuCreateView(APIView):
             "code": 400,
             "errors": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+    
 
-class UpdateOrderStatusView(APIView):
-    def patch(self, request, order_id):
-        order = get_object_or_404(Order, id=order_id)
+    
+#메뉴 수정,삭제
+class MenuPatchDeleteView(
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    generics.GenericAPIView
+):
+    queryset = Menu.objects.all()
+    serializer_class = MenuSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_url_kwarg = 'menu_id'  # URL에서 <menu_id> 가져오기
 
-        new_status = request.data.get('order_status')
+    def get_queryset(self):
+        manager = Manager.objects.get(user=self.request.user)
+        return Menu.objects.filter(booth_id=manager.booth)
+    
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
 
-        order.order_status = 'served_complete'
-        order.save()
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
 
-        serializer = TableOrderSerializer(order)
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
+    
+#메뉴 조회 기능
+class MenuListView(APIView):
+
+    def get(self, request):
+        manager = Manager.objects.get(user=request.user)
+        seat_type = manager.seat_type
+
+        # ① 실제 메뉴 가져오기
+        menus = Menu.objects.filter(booth_id=manager.booth)
+        serializer = MenuSerializer(menus, many=True)
+        menu_data = serializer.data
+
+        # ② 자릿세 항목 생성 (seat_type이 NO가 아닌 경우)
+        if seat_type == 'PP':
+            seat_tax_menu = {
+                "id": -1,  # 가짜 ID
+                "menu_name": "테이블 이용료",
+                "menu_category": "차지",
+                "menu_price": manager.seat_tax_person,
+                "menu_description": "인원 수에 맞춰 주문해 주세요",
+            }
+            menu_data.insert(0, seat_tax_menu)  # 리스트 앞에 삽입
+        elif seat_type == 'PT':
+            seat_tax_menu = {
+                "id": -2,
+                "menu_name": "테이블 이용료",
+                "menu_category": "차지",
+                "menu_price": manager.seat_tax_table,
+                "menu_description": "테이블 기준 1회 필수 주문이 필요해요",
+            }
+            menu_data.insert(0, seat_tax_menu)
+
+        # 3. 정렬 우선순위 정의
+        category_order = {'차지': 0, '메뉴': 1, '음료': 2}
+
+        # 4. 정렬 수행
+        menu_data.sort(
+            key=lambda x: (
+                category_order.get(x.get("menu_category"), 99), #1순위: 카테고리 우선순위 
+                -x.get("menu_price", 0), #2순위: 가격
+                x.get("id", 0) #3순위: 오래된거 부터 
+            )
+        )
 
         return Response({
             "status": "success",
-            "message": "서빙 완료로 변경되었습니다.",
+            "message": "메뉴 리스트 조회 성공",
             "code": 200,
-            "data": serializer.data
-        }, status=status.HTTP_200_OK)
+            "data": menu_data
+        }, status=200)
+
+
