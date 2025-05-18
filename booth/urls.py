@@ -1,4 +1,5 @@
-from django.urls import path, include
+from django.urls import path
+from .views import *
 from rest_framework.routers import DefaultRouter,SimpleRouter
 
 
@@ -8,5 +9,8 @@ from rest_framework.routers import DefaultRouter,SimpleRouter
 
 
 urlpatterns = [
-    # path('', include(router.urls)),
+    path('manager/tables/', TableListView.as_view()),
+    path("manager/tables/<int:table_num>/", TableDetailView.as_view()),
+    path("manager/tables/<int:table_num>/orders/<int:order_id>/", CancelOrUpdateOrderView.as_view()),
+    path("manager/tables/<int:table_num>/reset/", ResetTableView.as_view()),
 ]
