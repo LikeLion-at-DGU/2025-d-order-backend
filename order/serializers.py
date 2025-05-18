@@ -24,11 +24,26 @@ class AddToCartRequestSerializer(serializers.Serializer):
             raise serializers.ValidationError("menu_num은 1 이상이어야 합니다.")
         return value
     
-
-class OrderSummarySerializer(serializers.ModelSerializer):
+class CartSummarySerializer(serializers.ModelSerializer):
     menu_name = serializers.CharField(source='menu_id.menu_name', read_only=True)
     menu_price = serializers.IntegerField(source='menu_id.menu_price', read_only=True)
 
     class Meta:
         model=Order
         fields = ['id', 'menu_id', 'menu_name', 'menu_price', 'menu_num']
+
+class TableOrderSerializer(serializers.ModelSerializer):
+    menu_name = serializers.CharField(source='menu_id.menu_name', read_only=True)
+    menu_price = serializers.IntegerField(source='menu_id.menu_price', read_only=True)
+
+    class Meta:
+        model=Order
+        fields = ['id',        
+            'cart_id',
+            'menu_id',
+            'menu_name',
+            'menu_price',
+            'menu_num',
+            'order_status',
+            'created_at'
+        ]
