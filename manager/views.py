@@ -8,15 +8,68 @@ from django.contrib.auth.models import User
 from rest_framework.generics import RetrieveUpdateAPIView
 from .serializers import ManagerMyPageSerializer
 from manager.models import Manager
-from rest_framework.permissions import IsAuthenticated
+from booth.models import Table
+from order.models import Menu
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 
 class ManagerSignupView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = SignupSerializer(data=request.data)
         if serializer.is_valid():
-            return Response(serializer.save(), status=201)
+            manager = serializer.save()
+
+            #  회원가입 이후 table_num만큼 테이블 자동 생성
+            for i in range(1, manager.table_num + 1):
+                Table.objects.create(
+                    booth_id=manager.booth,
+                    table_num=i,
+                    table_status='out'
+                )
+            # 2. 자릿세 메뉴 자동 생성
+            if manager.seat_type in ['PT', 'PP']:
+                # 중복 생성 방지
+                if not Menu.objects.filter(
+                    booth_id=manager.booth,
+                    menu_name="테이블 이용료",
+                    menu_category="테이블 이용료"
+                ).exists():
+                    # seat_type에 따라 가격, 설명 결정
+                    if manager.seat_type == 'PT':
+                        menu_price = manager.seat_tax_table
+                        menu_description = "테이블"
+                    elif manager.seat_type == 'PP':
+                        menu_price = manager.seat_tax_person
+                        menu_description = "인원수"
+                    elif manager.seat_type == 'NO':
+                        menu_price = 0
+                        menu_description = " "
+
+                    Menu.objects.create(
+                        booth_id=manager.booth,
+                        menu_name="테이블 이용료",
+                        menu_category="테이블 이용료",
+                        menu_price=menu_price,
+                        menu_amount=999,
+                        menu_remain=999,
+                        menu_description=menu_description
+                    )
+
+
+            return Response({
+                "status": "success",
+                "message": "회원가입이 완료되었습니다.",
+                "code": 201,
+                "data": {
+                    "manager_id": manager.user.id,
+                    "booth_id": manager.booth.id,
+                    "table_num": manager.table_num
+                }
+            }, status=201)
+
         return Response(serializer.errors, status=400)
+
 
 class UsernameCheckView(APIView):
     def get(self, request):

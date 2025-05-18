@@ -44,16 +44,17 @@ class SignupSerializer(serializers.Serializer):
             seat_tax_person=validated_data["seat_tax_person"],
             seat_tax_table=validated_data["seat_tax_table"]
         )
+        return manager
 
-        return {
-            "message": "회원가입에 성공하셨습니다",
-            "code": 201,
-            "data": {
-                "manager_id": manager.pk,
-                "booth_id": booth.pk,
-                "booth_name": booth.name
-            }
-        }
+        # return {
+        #     "message": "회원가입에 성공하셨습니다",
+        #     "code": 201,
+        #     "data": {
+        #         "manager_id": manager.pk,
+        #         "booth_id": booth.pk,
+        #         "booth_name": booth.name
+        #     }
+        # }
 
 
 

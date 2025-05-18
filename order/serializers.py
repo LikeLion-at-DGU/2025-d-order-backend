@@ -68,10 +68,20 @@ class BoothOrderSerializer(serializers.ModelSerializer):
 class MenuSerializer(serializers.ModelSerializer):
     class Meta:
         model = Menu
-        fields = ['id', 'menu_name', 'menu_category', 'menu_price', 'menu_amount', 'menu_remain', 'menu_image']
+        fields = '__all__'
 
     def validate_menu_category(self, value):
-        if value not in ['음료', '메뉴']:
-            raise serializers.ValidationError("menu_category는 '음료' 또는 '메뉴' 중 하나여야 합니다.")
+        if value not in ['음료', '메뉴', '테이블 이용료']:
+            raise serializers.ValidationError("menu_category는 '음료', '메뉴', '테이블 이용료' 중 하나여야 합니다.")
         return value
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+
+        # 조건: 카테고리가 "테이블 이용료"일 때 특정 필드 제거
+        if instance.menu_category == "테이블 이용료":
+            rep.pop("menu_amount", None)
+            rep.pop("menu_remain", None)
+
+        return rep
+
     menu_image = serializers.ImageField(use_url=True, required=False)
