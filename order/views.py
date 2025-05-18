@@ -5,6 +5,7 @@ from booth.models import Booth, Table
 from order.models import Cart, Order, Menu
 from django.shortcuts import get_object_or_404
 from .serializers import *
+from django.db.models import Sum, F
 
 
 class AddToCartView(APIView):
@@ -132,7 +133,7 @@ class TableOrderView(APIView):
                 "code": 404
             }, status=status.HTTP_404_NOT_FOUND)
         
-        orders = Order.objects.filter(cart_id__in=carts).select_related('menu_id')
+        orders = Order.objects.filter(cart_id__in=carts).select_related('menu_id').order_by('-created_at')
         serializer = TableOrderSerializer(orders, many=True)
 
         return Response({
@@ -141,3 +142,36 @@ class TableOrderView(APIView):
             "code": 200,
             "data": serializer.data
         }, status=status.HTTP_200_OK)
+    
+class BoothOrderView(APIView):
+    def get(self, request, booth_id):
+        booth = get_object_or_404(Booth, id=booth_id)
+
+        menus = Menu.objects.filter(booth_id=booth)
+
+        order_complete_orders = Order.objects.filter(
+            menu_id__in=menus,
+            order_status='order_complete'
+        )
+
+        # 총 매출 계산 
+        total_revenue_qs = Order.objects.filter(
+            menu_id__in=menus,
+            order_status__in=['order_complete', 'served_complete']
+        ).annotate(
+            item_total=F('menu_num') * F('menu_id__menu_price')
+        ).aggregate(total=Sum('item_total'))
+
+        total_revenue = total_revenue_qs['total'] or 0
+
+        serializer = BoothOrderSerializer(order_complete_orders, many=True)
+        return Response({
+            "status": "success",
+            "message": "주문 목록 및 매출 조회 완료",
+            "code": 200,
+            "data": {
+                "total_revenue": total_revenue,
+                "orders": serializer.data
+            }
+        }, status=status.HTTP_200_OK)
+    

@@ -47,3 +47,20 @@ class TableOrderSerializer(serializers.ModelSerializer):
             'order_status',
             'created_at'
         ]
+
+class BoothOrderSerializer(serializers.ModelSerializer):
+    menu_name = serializers.CharField(source='menu_id.menu_name', read_only=True)
+    menu_price = serializers.IntegerField(source='menu_id.menu_price', read_only=True)
+    table_num = serializers.IntegerField(source='cart_id.table_id.table_num', read_only=True)
+
+    class Meta:
+        model = Order
+        fields = [
+            'id',
+            'menu_name',
+            'menu_price',
+            'menu_num',
+            'order_status',
+            'created_at',
+            'table_num'
+        ]
