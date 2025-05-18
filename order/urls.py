@@ -10,5 +10,6 @@ urlpatterns = [
     path('booths/<int:booth_id>/orders/', BoothOrderView.as_view()),
     path('carts/<int:cart_id>/', OrderFixView.as_view()),
     path('manager/menu/', MenuCreateView.as_view()),
+    path('orders/<int:order_id>/', UpdateOrderStatusView.as_view()),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
