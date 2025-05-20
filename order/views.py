@@ -333,3 +333,109 @@ class MenuListView(APIView):
             "code": 200,
             "data": serializer.data
         }, status=200)
+
+class UpdateOrderQuantityView(APIView):
+    def patch(self, request, order_id):
+        try:
+            # 1. Order 객체 가져오기
+            order = get_object_or_404(Order, id=order_id)
+            menu = order.menu_id
+            cart = order.cart_id
+
+            # 2. 요청 데이터
+            menu_num = request.data.get("menu_num")
+
+            if menu_num is None:
+                return Response({
+                    "status": "fail",
+                    "message": "menu_num이 누락되었습니다.",
+                    "code": 400
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # 3. menu_num 유효성 검사
+            try:
+                menu_num = int(menu_num)
+            except ValueError:
+                return Response({
+                    "status": "fail",
+                    "message": "menu_num은 숫자여야 합니다.",
+                    "code": 400
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if menu_num < 1:
+                return Response({
+                    "status": "fail",
+                    "message": "수량은 1개 이상이어야 합니다.",
+                    "code": 400
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # 4. 테이블 이용료 확인
+            if menu.menu_name == "테이블 이용료" or menu.menu_category == "테이블 이용료" or menu.menu_category.lower() == "seat":
+                return Response({
+                    "status": "fail",
+                    "message": "테이블 이용료 항목은 변경할 수 없습니다.",
+                    "code": 403
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            # 5. 재고 초과 여부 확인
+            if menu_num > menu.menu_remain:
+                return Response({
+                    "status": "fail",
+                    "message": f"재고({menu.menu_remain})보다 많은 수량은 담을 수 없습니다.",
+                    "code": 400
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # 6. 수량 변경
+            order.menu_num = menu_num
+            order.save()
+
+            # 7. 카트 총 가격 재계산
+            orders = Order.objects.filter(cart_id=cart)
+            total_price = sum(o.menu_id.menu_price * o.menu_num for o in orders)
+            cart.total_price = total_price
+            cart.save()
+
+            return Response({
+                "status": "success",
+                "message": "수량이 성공적으로 변경되었습니다.",
+                "code": 200,
+                "data": {
+                    "order_id": order.id,
+                    "menu_num": order.menu_num
+                }
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "status": "fail",
+                "message": str(e),
+                "code": 500
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    def delete(self, request, order_id):
+        order = get_object_or_404(Order, id=order_id)
+        menu = order.menu_id
+        cart = order.cart_id
+
+        # 테이블 이용료 항목 삭제 방지
+        if menu.menu_name == "테이블 이용료" or menu.menu_category == "테이블 이용료" or menu.menu_category.lower() == "seat":
+            return Response({
+                "status": "fail",
+                "message": "테이블 이용료 항목은 삭제할 수 없습니다.",
+                "code": 403
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # 삭제 수행
+        order.delete()
+
+        # cart 총합 재계산
+        remaining_orders = Order.objects.filter(cart_id=cart)
+        total_price = sum(o.menu_id.menu_price * o.menu_num for o in remaining_orders)
+        cart.total_price = total_price
+        cart.save()
+
+        return Response({
+            "status": "success",
+            "message": "해당 항목이 삭제되었습니다.",
+            "code": 204
+        }, status=status.HTTP_204_NO_CONTENT)
