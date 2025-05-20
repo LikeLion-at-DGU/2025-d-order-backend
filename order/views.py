@@ -439,3 +439,59 @@ class UpdateOrderQuantityView(APIView):
             "message": "해당 항목이 삭제되었습니다.",
             "code": 204
         }, status=status.HTTP_204_NO_CONTENT)
+        
+class MenuListView(APIView):
+    def get(self, request):
+        table_id = request.GET.get("table_id")
+        if not table_id:
+            return Response({
+                "status": "error",
+                "message": "table_id는 필수입니다.",
+                "code": 400,
+                "data": None
+            }, status=400)
+
+        table = get_object_or_404(Table, id=table_id)
+        booth = table.booth_id
+        menus = Menu.objects.filter(booth_id=booth)
+        manager = get_object_or_404(Manager, booth=booth)
+
+        # seat_type에 따라 요금 정보 정리
+        seat_info = {"seat_type": "none", "seat_tax_person": 0}
+
+        if manager.seat_type == "PP":  # 인당 요금
+            seat_info = {
+                "seat_type": "person",
+                "seat_tax_person": manager.seat_tax_person or 0
+            }
+        elif manager.seat_type == "PT":  # 테이블당 요금
+            seat_info = {
+                "seat_type": "table",
+                "seat_tax_table": manager.seat_tax_table or 0
+            }
+        elif manager.seat_type == "NO":
+            seat_info = {
+                "seat_type": "none"
+            }
+
+        # 메뉴 리스트 구성
+        menu_list = []
+        for menu in menus:
+            menu_list.append({
+                "menu_id": menu.id,
+                "menu_name": menu.menu_name,
+                "menu_description": menu.menu_description,
+                "menu_price": menu.menu_price,
+                "menu_image": request.build_absolute_uri(menu.menu_image.url) if menu.menu_image else None,
+                "menu_type": "normal"  # 현재 menu_type은 없으므로 default
+            })
+
+        return Response({
+            "status": "success",
+            "message": "메뉴 목록 조회 성공",
+            "code": 200,
+            "data": {
+                "seat": seat_info,
+                "menus": menu_list
+            }
+        }, status=200)
