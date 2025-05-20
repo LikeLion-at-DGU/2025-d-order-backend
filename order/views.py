@@ -203,11 +203,14 @@ class OrderFixView(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
 
         now_time = now()
+        
+
         for order in orders:
             menu = order.menu_id
             menu.menu_remain -= order.menu_num
             menu.save()
 
+            order.menu_price = menu.menu_price  #주문 시점 가격 저장
             order.order_status = 'order_complete'
             order.created_at = now_time
             order.save()
@@ -493,5 +496,38 @@ class MenuListView(APIView):
             "data": {
                 "seat": seat_info,
                 "menus": menu_list
+            }
+        }, status=200)
+        
+class TotalRevenueView(APIView):
+    def get(self, request):
+        try:
+            manager = Manager.objects.get(user=request.user)
+        except Manager.DoesNotExist:
+            return Response({
+                "status": "error",
+                "message": "부스 정보가 존재하지 않습니다.",
+                "code": 404,
+                "data": None
+            }, status=404)
+
+        booth = manager.booth
+        tables = Table.objects.filter(booth_id=booth)
+
+        total_revenue = Order.objects.filter(
+            cart_id__table_id__in=tables,
+            order_status="order_complete"
+        ).aggregate(
+            total=Sum(F("menu_num") * F("menu_price"))
+        )["total"] or 0
+
+        return Response({
+            "status": "success",
+            "message": "부스 매출 정보 조회 성공",
+            "code": 200,
+            "data": {
+                "booth_id": booth.id,
+                "booth_name": booth.booth_name,
+                "total_revenues": total_revenue
             }
         }, status=200)
