@@ -29,15 +29,18 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-if DEBUG:
-    ALLOWED_HOSTS = ['*']
-else:
-    ALLOWED_HOSTS = [
+CSRF_TRUSTED_ORIGINS = [
+    "https://api.d-order.shop",
+]
+
+
+
+ALLOWED_HOSTS = [
         'api.d-order.shop',
         'localhost',
         '127.0.0.1',
         '3.36.154.174',
-    ]
+]
 
 
 # Application definition
