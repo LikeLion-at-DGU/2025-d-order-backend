@@ -93,6 +93,7 @@ class UsernameCheckView(APIView):
         }, status=status.HTTP_200_OK)
 
 class ManagerLoginView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         try:

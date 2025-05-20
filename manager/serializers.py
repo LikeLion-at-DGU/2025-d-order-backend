@@ -57,10 +57,6 @@ class SignupSerializer(serializers.Serializer):
         # }
 
 
-
-
-
-
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
@@ -69,17 +65,37 @@ class LoginSerializer(serializers.Serializer):
         username = data.get("username")
         password = data.get("password")
 
-
-        user = authenticate(username=username, password=password)
-        if not user:
+        # 1. 아이디 존재 여부 확인
+        if not User.objects.filter(username=username).exists():
             raise serializers.ValidationError({
-                "message": "아이디 또는 비밀번호가 올바르지 않습니다.",
+                "message": "일치하지 않는 아이디에요.",
                 "code": 401,
                 "data": None,
                 "token": None
             })
 
-        manager = Manager.objects.get(user=user)
+        # 2. 비밀번호 확인 (아이디는 존재하므로 authenticate 가능)
+        user = authenticate(username=username, password=password)
+        if not user:
+            raise serializers.ValidationError({
+                "message": "일치하지 않는 비밀번호에요.",
+                "code": 401,
+                "data": None,
+                "token": None
+            })
+
+        # 3. Manager 유무 확인
+        try:
+            manager = Manager.objects.get(user=user)
+        except Manager.DoesNotExist:
+            raise serializers.ValidationError({
+                "message": "해당 유저는 매니저가 아닙니다.",
+                "code": 403,
+                "data": None,
+                "token": None
+            })
+
+        # 4. 토큰 발급
         refresh = RefreshToken.for_user(user)
 
         return {
