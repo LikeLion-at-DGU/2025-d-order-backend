@@ -527,7 +527,7 @@ class TotalRevenueView(APIView):
             "code": 200,
             "data": {
                 "booth_id": booth.id,
-                "booth_name": booth.booth_name,
+                "booth_name": booth.name,
                 "total_revenues": total_revenue
             }
         }, status=200)
