@@ -29,7 +29,15 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = ['*']
+if DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = [
+        'api.d-order.shop',
+        'localhost',
+        '127.0.0.1',
+        '3.36.154.174',
+    ]
 
 
 # Application definition
@@ -173,6 +181,8 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:8000',
 
     # 프론트엔드 도메인 또는 IP주소
-    
+    'https://d-order.netlify.app',         # 손님용
+    'https://d-order-admin.netlify.app',   # 운영자용
     # 백엔드 도메인 또는 IP주소
+    'https://api.d-order.shop',
 ]
