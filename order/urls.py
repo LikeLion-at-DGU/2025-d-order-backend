@@ -14,5 +14,6 @@ urlpatterns = [
     path('manager/menu/<int:menu_id>/', MenuPatchDeleteView.as_view()),
     path('manager/menu/', MenuListView.as_view()),
     path('orders/<int:order_id>/', UpdateOrderStatusView.as_view()),
+    path("menus/", MenuListView.as_view()),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
