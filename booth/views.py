@@ -157,3 +157,63 @@ class ResetTableView(APIView):
             "message": f"{table.table_num}번 테이블이 리셋되었습니다.",
             "code": 200
         }, status=200)
+
+class EnterTableView(APIView):
+    def post(self, request):
+        booth_id = request.data.get('booth_id')
+        table_num = request.data.get('table_num')
+        table_id = request.data.get('table_id')
+
+        # 1. 유효한 테이블인지 확인
+        try:
+            booth = Booth.objects.get(id=booth_id)
+            table = Table.objects.get(id=table_id, booth_id=booth, table_num=table_num)
+        except Booth.DoesNotExist:
+            return Response({
+                "status": "error",
+                "message": "올바르지 않은 부스 ID입니다.",
+                "code": 404,
+                "data": None
+            }, status=404)
+        except Table.DoesNotExist:
+            return Response({
+                "status": "error",
+                "message": "올바르지 않은 테이블 번호입니다.",
+                "code": 404,
+                "data": None
+            }, status=404)
+
+        # 2. 이미 입장한 테이블이면 에러
+        if table.table_status == "activate":
+            return Response({
+                "status": "error",
+                "message": "이미 입장한 테이블 번호입니다. 다시 확인해주세요.",
+                "code": 409,
+                "data": None
+            }, status=409)
+
+        # 3. 테이블 상태를 활성화로 변경
+        table.table_status = "activate"
+        table.save()
+
+        # 4. 새 cart 생성
+        cart = Cart.objects.create(
+            table_id=table,
+            cart_status=True,
+            total_price=0
+        )
+
+        return Response({
+            "status": "success",
+            "message": "입장 성공! 새 cart 생성됨.",
+            "code": 201,
+            "data": {
+                "table_id": table.id,
+                "table_num": table.table_num,
+                "booth_id": booth.id,
+                "booth_name": booth.name,
+                "table_status": table.table_status,
+                "cart_status": str(cart.cart_status).lower(),  # true
+                "cart_id": cart.id
+            }
+        }, status=201)
