@@ -1,5 +1,8 @@
 from django.db import models
 from booth.models import Booth, Table
+from PIL import Image
+from io import BytesIO
+from django.core.files.base import ContentFile
 
 # Create your models here.
 class Menu(models.Model):
@@ -18,6 +21,26 @@ class Menu(models.Model):
     menu_image = models.ImageField(upload_to='menu_images/', blank=True, null=True)
     def __str__(self):
         return self.menu_name
+    
+    def compress_image(self, image_field_file, image_field_name):
+        img = Image.open(image_field_file)
+
+        # Pillow는 JPEG 저장을 위해 RGB로 변환 필요
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+
+        output = BytesIO()
+        img.save(output, format='JPEG', quality=70)  # 압축 품질 조절 (0~100)
+        output.seek(0)
+
+        compressed_image = ContentFile(output.read(), name=image_field_file.name)
+        setattr(self, image_field_name, compressed_image)
+
+    def save(self, *args, **kwargs):
+        # 이미지 있을 때만 압축
+        if self.menu_image:
+            self.compress_image(self.menu_image, 'menu_image')
+        super().save(*args, **kwargs)
 
 
 class Cart(models.Model):

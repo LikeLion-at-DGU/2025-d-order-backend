@@ -14,7 +14,7 @@ urlpatterns = [
     path('carts/<int:cart_id>/', OrderFixView.as_view()),
     path('manager/menu/add/', MenuCreateView.as_view()),
     path('manager/menu/<int:menu_id>/', MenuPatchDeleteView.as_view()),
-    path('manager/menu/', MenuListView.as_view()),
+    path('manager/menu/', MenuManagerListView.as_view()),
     path('orders/', FinalizeOrderView.as_view()),
     path('orders/<int:order_id>/', UpdateOrderStatusView.as_view()),
     path("menus/", MenuListView.as_view()),
