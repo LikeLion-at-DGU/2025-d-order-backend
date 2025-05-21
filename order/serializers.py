@@ -66,6 +66,8 @@ class BoothOrderSerializer(serializers.ModelSerializer):
         ]
 
 class MenuSerializer(serializers.ModelSerializer):
+    booth_id = serializers.PrimaryKeyRelatedField(read_only=True)
+    
     class Meta:
         model = Menu
         fields = '__all__'

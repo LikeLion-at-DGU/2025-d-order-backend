@@ -303,7 +303,7 @@ class MenuPatchDeleteView(
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
     
-class MenuListView(APIView):
+class MenuManagerListView(APIView):
     def get(self, request):
         manager = Manager.objects.get(user=request.user)
 
@@ -442,7 +442,8 @@ class UpdateOrderQuantityView(APIView):
             "message": "해당 항목이 삭제되었습니다.",
             "code": 204
         }, status=status.HTTP_204_NO_CONTENT)
-        
+
+
 class MenuListView(APIView):
     def get(self, request):
         table_id = request.GET.get("table_id")
