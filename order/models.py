@@ -13,7 +13,7 @@ class Menu(models.Model):
     id = models.AutoField(primary_key=True)
     booth_id = models.ForeignKey(Booth, on_delete=models.CASCADE)
     menu_name = models.CharField(max_length=20)
-    menu_description = models.CharField(max_length=30)
+    menu_description = models.CharField(max_length=30, blank=True, null=True)
     menu_category = models.CharField(max_length=10, choices=CATEGORY_CHOICES)
     menu_price = models.IntegerField()
     menu_amount = models.IntegerField()

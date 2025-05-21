@@ -72,6 +72,9 @@ class MenuSerializer(serializers.ModelSerializer):
     class Meta:
         model = Menu
         fields = '__all__'
+        extra_kwargs = {
+            'menu_remain': {'required': False}  # ← 요거 하나로 해결됨
+        }
 
     def validate_menu_category(self, value):
         if value not in ['음료', '메뉴', '테이블 이용료']:
