@@ -67,6 +67,7 @@ class BoothOrderSerializer(serializers.ModelSerializer):
 
 class MenuSerializer(serializers.ModelSerializer):
     booth_id = serializers.PrimaryKeyRelatedField(read_only=True)
+    menu_image = serializers.ImageField(use_url=True, required=False)
     
     class Meta:
         model = Menu
@@ -86,4 +87,11 @@ class MenuSerializer(serializers.ModelSerializer):
 
         return rep
 
-    menu_image = serializers.ImageField(use_url=True, required=False)
+class OrderItemSerializer(serializers.Serializer):
+    menu_id = serializers.IntegerField()
+    menu_num = serializers.IntegerField(min_value=1)
+
+class ConfirmCartSerializer(serializers.Serializer):
+    booth_id = serializers.IntegerField()
+    table_num = serializers.CharField()
+    items = OrderItemSerializer(many=True)
