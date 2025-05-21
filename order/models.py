@@ -19,8 +19,8 @@ class Menu(models.Model):
     menu_amount = models.IntegerField()
     menu_remain = models.IntegerField()
     menu_image = models.ImageField(upload_to='menu_images/', blank=True, null=True)
-    def __str__(self):
-        return self.menu_name
+    # def __str__(self):
+    #     return self.menu_name
     
     def compress_image(self, image_field_file, image_field_name):
         img = Image.open(image_field_file)
