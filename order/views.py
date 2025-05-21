@@ -181,6 +181,7 @@ class BoothOrderView(APIView):
 class OrderFixView(APIView):
     def patch(self, request, cart_id):
         cart = get_object_or_404(Cart, id=cart_id)
+        table = cart.table_id
 
         cart_status = request.data.get('cart_status')
         
@@ -192,6 +193,19 @@ class OrderFixView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         orders = Order.objects.filter(cart_id=cart).select_related('menu_id')
+
+        # ✅ 현재 테이블에 완료된 주문이 있는지 확인
+        has_complete_order = Cart.objects.filter(table_id=table, cart_status=True).exists()
+
+        # ✅ 주문에 '테이블 이용료'가 포함되어 있는지 확인
+        has_seat_tax = any(order.menu_id.menu_name == '테이블 이용료' for order in orders)
+
+        if not has_complete_order and not has_seat_tax:
+            return Response({
+                "status": "fail",
+                "message": "첫 주문에는 테이블 이용료를 반드시 포함해야 합니다.",
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         for order in orders:
             menu = order.menu_id
@@ -442,7 +456,6 @@ class UpdateOrderQuantityView(APIView):
             "message": "해당 항목이 삭제되었습니다.",
             "code": 204
         }, status=status.HTTP_204_NO_CONTENT)
-
 
 class MenuListView(APIView):
     def get(self, request):
