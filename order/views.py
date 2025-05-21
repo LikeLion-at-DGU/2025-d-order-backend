@@ -654,3 +654,42 @@ class OrderCheckView(APIView):
             "code": 200,
             "data": None
         }, status=status.HTTP_200_OK)
+    
+class TableOrderGroupView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        manager = Manager.objects.get(user=request.user)
+        booth = manager.booth
+
+        tables = Table.objects.filter(booth_id=booth)
+        response_data = []
+
+        for table in tables:
+            carts = Cart.objects.filter(table_id=table, cart_status=True).order_by('created_at')
+
+            for cart in carts:
+                orders = Order.objects.filter(cart_id=cart).select_related('menu_id')
+                order_data = []
+
+                for order in orders:
+                    menu = order.menu_id
+                    order_data.append({
+                        "menu_name": menu.menu_name,
+                        "menu_image": request.build_absolute_uri(menu.menu_image.url) if menu.menu_image else None,
+                        "menu_num": order.menu_num,
+                        "order_status": order.order_status
+                    })
+
+                response_data.append({
+                    "table_num": table.table_num,
+                    "created_at": cart.created_at,
+                    "orders": order_data
+                })
+
+        return Response({
+            "status": "success",
+            "message": "테이블별 주문 조회 성공",
+            "code": 200,
+            "data": response_data
+        }, status=200)
