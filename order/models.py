@@ -9,6 +9,7 @@ class Menu(models.Model):
     CATEGORY_CHOICES = ( #둘 중 하나로 저장 카테고리 
         ("음료", "음료"),
         ("메뉴", "메뉴"),
+        ("테이블 이용료", "테이블 이용료"),
     )
     id = models.AutoField(primary_key=True)
     booth_id = models.ForeignKey(Booth, on_delete=models.CASCADE)
@@ -25,18 +26,18 @@ class Menu(models.Model):
     
     
     def compress_image(self, image_field_file, image_field_name):
-        img = Image.open(image_field_file)
-
-        # Pillow는 JPEG 저장을 위해 RGB로 변환 필요
-        if img.mode != 'RGB':
-            img = img.convert('RGB')
-
-        output = BytesIO()
-        img.save(output, format='JPEG', quality=70)  # 압축 품질 조절 (0~100)
-        output.seek(0)
-
-        compressed_image = ContentFile(output.read(), name=image_field_file.name)
-        setattr(self, image_field_name, compressed_image)
+        try:
+            img = Image.open(image_field_file)
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            output = BytesIO()
+            img.save(output, format='JPEG', quality=70)
+            output.seek(0)
+            compressed_image = ContentFile(output.read(), name=image_field_file.name)
+            setattr(self, image_field_name, compressed_image)
+        except Exception as e:
+            print("이미지 압축 실패:", str(e))
+            raise
 
     def save(self, *args, **kwargs):
         # 처음 생성 시에만 menu_remain을 menu_amount와 같게 설정
@@ -46,6 +47,9 @@ class Menu(models.Model):
         if self.menu_image:
             self.compress_image(self.menu_image, 'menu_image')
         super().save(*args, **kwargs)
+        if self.menu_amount is None:
+            raise ValueError("menu_amount 값이 필요합니다.")
+
 
 
 class Cart(models.Model):
