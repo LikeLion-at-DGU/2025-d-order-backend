@@ -21,6 +21,8 @@ class Menu(models.Model):
     menu_image = models.ImageField(upload_to='menu_images/', blank=True, null=True)
     # def __str__(self):
     #     return self.menu_name
+
+    
     
     def compress_image(self, image_field_file, image_field_name):
         img = Image.open(image_field_file)
@@ -37,6 +39,9 @@ class Menu(models.Model):
         setattr(self, image_field_name, compressed_image)
 
     def save(self, *args, **kwargs):
+        # 처음 생성 시에만 menu_remain을 menu_amount와 같게 설정
+        if self._state.adding and self.menu_remain is None:
+            self.menu_remain = self.menu_amount
         # 이미지 있을 때만 압축
         if self.menu_image:
             self.compress_image(self.menu_image, 'menu_image')
