@@ -225,36 +225,66 @@ class UpdateOrderStatusView(APIView):
             "data": serializer.data
         }, status=status.HTTP_200_OK)
 
-#메뉴 등록 기능
 class MenuCreateView(APIView):
-    permission_classes = [IsAuthenticated]  #로그인한 사람만 등록 가능
-    #메뉴 등록
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        serializer = MenuSerializer(data=request.data)
-        manager = Manager.objects.get(user=request.user)
-        if serializer.is_valid():
-            menu = serializer.save(booth_id=manager.booth)
+        try:
+            serializer = MenuSerializer(data=request.data)
+
+            # 1. 로그인한 유저의 Manager 조회 (예외 대비)
+            try:
+                manager = Manager.objects.get(user=request.user)
+            except Manager.DoesNotExist:
+                return Response({
+                    "status": "fail",
+                    "message": "유저에 해당하는 매니저 정보가 없습니다.",
+                    "code": 403
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            # 2. 시리얼라이저 유효성 검사
+            if serializer.is_valid():
+                try:
+                    menu = serializer.save(booth_id=manager.booth)
+                except Exception as e:
+                    print("🔥 Menu 저장 중 오류:", str(e))
+                    return Response({
+                        "status": "fail",
+                        "message": f"메뉴 저장 중 오류 발생: {str(e)}",
+                        "code": 500
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+                return Response({
+                    "status": "success",
+                    "message": "메뉴가 등록되었습니다.",
+                    "code": 201,
+                    "data": {
+                        "booth_id": menu.booth_id.id,
+                        "menu_id": menu.id,
+                        "menu_name": menu.menu_name,
+                        "menu_category": menu.menu_category,
+                        "menu_price": menu.menu_price,
+                        "menu_amount": menu.menu_amount,
+                        "menu_remain": menu.menu_remain,
+                        "menu_image": request.build_absolute_uri(menu.menu_image.url) if menu.menu_image else None
+                    }
+                }, status=status.HTTP_201_CREATED)
+
+            # 3. serializer.is_valid() 실패 시
             return Response({
-                "status": "success",
-                "message": "메뉴가 등록되었습니다.",
-                "code": 201,
-                "data": {
-                    "booth_id": menu.booth_id.id,
-                    "menu_id": menu.id,
-                    "menu_name": menu.menu_name,
-                    "menu_category": menu.menu_category,
-                    "menu_price": menu.menu_price,
-                    "menu_amount": menu.menu_amount,
-                    "menu_remain": menu.menu_remain,
-                    "menu_image": menu.menu_image.url if menu.menu_image else None
-                }
-            }, status=status.HTTP_201_CREATED)
-        return Response({
-            "status": "fail",
-            "message": "유효하지 않은 요청입니다.",
-            "code": 400,
-            "errors": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+                "status": "fail",
+                "message": "유효하지 않은 요청입니다.",
+                "code": 400,
+                "errors": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            print("🔥 MenuCreateView 전역 오류:", str(e))
+            return Response({
+                "status": "fail",
+                "message": f"서버 내부 오류 발생: {str(e)}",
+                "code": 500
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 #메뉴 수정,삭제
 class MenuPatchDeleteView(
