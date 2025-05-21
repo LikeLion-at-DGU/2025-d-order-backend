@@ -14,5 +14,6 @@ urlpatterns = [
     path("manager/tables/<int:table_num>/orders/<int:order_id>/", CancelOrUpdateOrderView.as_view()),
     path("manager/tables/<int:table_num>/reset/", ResetTableView.as_view()),
     path("tables/enter/", EnterTableView.as_view()),
+    path("booth/qr-download/", BoothQRView.as_view()),
 
 ]
