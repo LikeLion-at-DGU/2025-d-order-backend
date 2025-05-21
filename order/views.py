@@ -139,10 +139,15 @@ class TableOrderView(APIView):
         orders = Order.objects.filter(cart_id__in=carts).select_related('menu_id').order_by('-created_at')
         serializer = TableOrderSerializer(orders, many=True)
 
+        total_price = sum(
+            order.menu_id.menu_price * order.menu_num for order in orders
+        )
+
         return Response({
             "status": "success",
             "message": "주문 내역 조회 완료",
             "code": 200,
+            "total_price": total_price,            
             "data": serializer.data
         }, status=status.HTTP_200_OK)
     
