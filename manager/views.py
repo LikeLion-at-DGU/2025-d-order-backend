@@ -11,6 +11,9 @@ from manager.models import Manager
 from booth.models import Table
 from order.models import Menu
 from rest_framework.permissions import IsAuthenticated, AllowAny
+import qrcode
+from io import BytesIO
+from django.core.files.base import ContentFile
 
 
 class ManagerSignupView(APIView):
@@ -19,6 +22,25 @@ class ManagerSignupView(APIView):
         serializer = SignupSerializer(data=request.data)
         if serializer.is_valid():
             manager = serializer.save()
+            booth = manager.booth
+
+            # 1) QR 코드 생성
+            link = f"https://d-order.netlify.app/?id={booth.id}"
+            img = qrcode.make(link)
+
+            # 2) 메모리 버퍼에 저장
+            buffer = BytesIO()
+            img.save(buffer, format='PNG')
+            buffer.seek(0)
+
+            # 3) Booth.qr_code_image 에 붙이고 저장
+            filename = f"booth_{booth.id}_qr.png"
+            booth.qr_code_image.save(
+                filename,
+                ContentFile(buffer.getvalue()),
+                save=True
+            )
+            buffer.close()
 
             #  회원가입 이후 table_num만큼 테이블 자동 생성
             for i in range(1, manager.table_num + 1):

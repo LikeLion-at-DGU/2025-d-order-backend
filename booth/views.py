@@ -9,6 +9,37 @@ from django.shortcuts import get_object_or_404
 from .serializers import *
 from django.db.models import Sum, F
 from django.utils.timezone import now
+from django.http import FileResponse
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from .models import Booth
+
+class BoothQRView(APIView):
+
+    permission_classes = [IsAuthenticated] 
+
+    def get(self, request):
+        booth_id = request.query_params.get('booth_id')
+        if not booth_id:
+            return Response(
+                {"message": "booth_id 쿼리 파라미터가 필요합니다."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        booth = get_object_or_404(Booth, id=booth_id)
+
+        if not booth.qr_code_image:
+            return Response(
+                {"message": "QR 코드가 아직 생성되지 않았습니다."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # FileResponse 로 실제 파일 스트림을 내려줍니다.
+        return FileResponse(
+            booth.qr_code_image.open('rb'),
+            content_type='image/png'
+        )
+
+
 
 class TableListView(APIView):
 
