@@ -13,7 +13,7 @@ class Menu(models.Model):
     id = models.AutoField(primary_key=True)
     booth_id = models.ForeignKey(Booth, on_delete=models.CASCADE)
     menu_name = models.CharField(max_length=20)
-    menu_description = models.CharField(max_length=30)
+    menu_description = models.CharField(max_length=30, blank=True, null=True)
     menu_category = models.CharField(max_length=10, choices=CATEGORY_CHOICES)
     menu_price = models.IntegerField()
     menu_amount = models.IntegerField()
@@ -37,6 +37,10 @@ class Menu(models.Model):
         setattr(self, image_field_name, compressed_image)
 
     def save(self, *args, **kwargs):
+         # 처음 생성 시에만 menu_remain을 menu_amount와 같게 설정
+        if self._state.adding and self.menu_remain is None:
+            self.menu_remain = self.menu_amount
+
         # 이미지 있을 때만 압축
         if self.menu_image:
             self.compress_image(self.menu_image, 'menu_image')
