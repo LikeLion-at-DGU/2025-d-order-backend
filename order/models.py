@@ -3,6 +3,7 @@ from booth.models import Booth, Table
 from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
+from django.utils.timezone import now
 
 # Create your models here.
 class Menu(models.Model):
@@ -57,6 +58,7 @@ class Cart(models.Model):
     table_id = models.ForeignKey(Table, on_delete=models.CASCADE)
     cart_status = models.BooleanField(default=False)
     total_price = models.IntegerField()
+    created_at = models.DateTimeField(default=now)
 
     
 class Order(models.Model):

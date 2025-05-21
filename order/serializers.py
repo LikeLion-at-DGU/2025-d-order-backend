@@ -73,7 +73,7 @@ class MenuSerializer(serializers.ModelSerializer):
         model = Menu
         fields = '__all__'
         extra_kwargs = {
-            'menu_remain': {'required': False}  # ← 요거 하나로 해결됨
+            'menu_remain': {'required': False}  
         }
 
     def validate_menu_category(self, value):

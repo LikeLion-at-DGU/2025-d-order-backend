@@ -20,4 +20,5 @@ urlpatterns = [
     path('orders/<int:order_id>/', UpdateOrderStatusView.as_view()),
     path("menus/", MenuListView.as_view()),
     path("booth/total_revenues/", TotalRevenueView.as_view()),
+    path('manager/tables/orders/', TableOrderGroupView.as_view(), name='table-order-group'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
