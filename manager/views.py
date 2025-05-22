@@ -192,3 +192,26 @@ class ManagerMyPageView(RetrieveUpdateAPIView):
             "code": 200,
             "data": serializer.data
         }, status=200)
+        
+class BoothNameView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            manager = Manager.objects.get(user=request.user)
+            booth = manager.booth
+            return Response({
+                "status": "success",
+                "message": "부스 이름 조회 성공",
+                "code": 200,
+                "data": {
+                    "booth_id": booth.id,
+                    "booth_name": booth.name
+                }
+            }, status=200)
+        except Manager.DoesNotExist:
+            return Response({
+                "status": "fail",
+                "message": "로그인한 관리자 정보가 없습니다.",
+                "code": 404
+            }, status=404)
