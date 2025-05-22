@@ -72,7 +72,7 @@ class ConfirmCartOrderView(APIView):
                 menu_id=menu,
                 menu_num=menu_num,
                 menu_price=menu.menu_price,
-                order_status="order_complete",
+                order_status="장바구니",
                 created_at=now_time
             )
             menu.menu_remain -= menu_num
@@ -80,7 +80,7 @@ class ConfirmCartOrderView(APIView):
             total_price += menu.menu_price * menu_num
             created_orders.append(order.id)
 
-        cart.cart_status = True
+        cart.cart_status = False
         cart.total_price = total_price
         cart.save()
 
@@ -96,7 +96,48 @@ class ConfirmCartOrderView(APIView):
             }
         }, status=status.HTTP_201_CREATED)
 
+class OrderFixView(APIView):
+    def patch(self, request, cart_id):
+        cart = get_object_or_404(Cart, id=cart_id)
+        table = cart.table_id
 
+        cart_status = request.data.get('cart_status')
+        
+        if cart.cart_status:
+            return Response({
+                "status": "fail",
+                "message": "이미 확정된 주문입니다.",
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        orders = Order.objects.filter(cart_id=cart).select_related('menu_id')
+
+        now_time = now()
+        
+        for order in orders:
+            menu = order.menu_id
+            menu.menu_remain -= order.menu_num
+            menu.save()
+
+            order.menu_price = menu.menu_price  #주문 시점 가격 저장
+            order.order_status = 'order_complete'
+            order.created_at = now_time
+            order.save()
+
+        cart.cart_status = True
+        cart.save()
+
+
+        return Response({
+            "status": "success",
+            "message": "주문이 확정되었습니다.",
+            "code": 200,
+            "data": {
+                "cart_id": cart.id,
+                "cart_status": cart.cart_status
+            }
+        }, status=status.HTTP_200_OK)
+    
 class TableCartView(APIView):
     def get(self, request, table_id):
         table = get_object_or_404(Table, id=table_id)
@@ -185,28 +226,6 @@ class BoothOrderView(APIView):
             }
         }, status=status.HTTP_200_OK)
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class UpdateOrderStatusView(APIView):
     def patch(self, request, order_id):
         order = get_object_or_404(Order, id=order_id)
