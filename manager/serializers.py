@@ -75,7 +75,7 @@ class LoginSerializer(serializers.Serializer):
         user = authenticate(username=username, password=password)
         if not user:
             raise serializers.ValidationError({
-                "message": "일치하지 않는 비밀번호에요.",
+                "message": "일치하지 않는 아이디에요.",
                 "code": 401,
                 "data": None
             })
@@ -142,3 +142,19 @@ class ManagerMyPageSerializer(serializers.ModelSerializer):
                 })
 
         return attrs
+
+    def update(self, instance, validated_data):
+        # booth 관련 필드 분리
+        booth_data = validated_data.pop('booth', None)
+
+        # booth.name 수정 처리
+        if booth_data and 'name' in booth_data:
+            instance.booth.name = booth_data['name']
+            instance.booth.save()
+
+        # 나머지 Manager 필드 수정
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        return instance
