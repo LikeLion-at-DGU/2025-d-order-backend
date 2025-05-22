@@ -31,14 +31,8 @@ class ConfirmCartOrderView(APIView):
             table_num=table_num,
             defaults={'table_status': 'active'}
         )
-        cart, _ = Cart.objects.get_or_create(
-            table_id=table,
-            cart_status=True,
-            defaults={'total_price': 0}
-        )
 
         has_previous_order = Cart.objects.filter(table_id=table, cart_status=True).exists()
-
         has_seat_tax = any(
             get_object_or_404(Menu, id=item['menu_id']).menu_category == "테이블 이용료"
             for item in items
@@ -50,6 +44,12 @@ class ConfirmCartOrderView(APIView):
                 "message": "첫 주문에는 테이블 이용료를 반드시 포함해야 합니다.",
                 "code": 400
             }, status=status.HTTP_400_BAD_REQUEST)
+
+        cart = Cart.objects.create(
+            table_id=table,
+            cart_status=False,
+            total_price=0
+        )
 
         now_time = now()
         total_price = 0
@@ -80,7 +80,7 @@ class ConfirmCartOrderView(APIView):
             total_price += menu.menu_price * menu_num
             created_orders.append(order.id)
 
-        cart.cart_status = True
+        cart.cart_status = False
         cart.total_price = total_price
         cart.save()
 
@@ -641,9 +641,9 @@ class OrderCheckView(APIView):
             }, status=status.HTTP_401_UNAUTHORIZED)
 
         # 테이블의 진행 중인 cart 찾기
-        try:
-            cart = Cart.objects.get(table_id=table_id, cart_status=True)
-        except Cart.DoesNotExist:
+        cart = Cart.objects.filter(table_id=table_id, cart_status=False).order_by('-id').first()
+
+        if not cart:
             return Response({
                 "status": "error",
                 "message": "진행 중인 주문이 없습니다.",
