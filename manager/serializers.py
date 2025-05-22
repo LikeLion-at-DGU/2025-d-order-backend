@@ -75,7 +75,7 @@ class LoginSerializer(serializers.Serializer):
         user = authenticate(username=username, password=password)
         if not user:
             raise serializers.ValidationError({
-                "message": "일치하지 않는 아이디에요.",
+                "message": "일치하지 않는 비밀번호에요.",
                 "code": 401,
                 "data": None
             })

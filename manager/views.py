@@ -131,37 +131,28 @@ class ManagerLoginView(APIView):
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
 
+        # ✅ 응답 본문에는 access만 포함
         response = Response({
             "message": "로그인 성공",
             "code": 200,
             "data": {
                 "manager_id": manager.pk,
-                "booth_id": manager.booth_id
+                "booth_id": manager.booth_id,
+                "access_token": access_token  # JSON에 access만 포함
             }
         }, status=status.HTTP_200_OK)
 
-        # 쿠키에 access_token 저장 (5분)
-        response.set_cookie(
-            key='access_token',
-            value=access_token,
-            httponly=True,
-            secure=True,  # 개발 중 false, 배포 시 True
-            samesite='Lax',
-            max_age=5 * 60,
-        )
-
-        #쿠키에 refresh_token 저장 (7일)
+        # refresh_token은 HttpOnly 쿠키로만 전송
         response.set_cookie(
             key='refresh_token',
             value=refresh_token,
             httponly=True,
-            secure=True,
+            secure=True,      # 개발 중엔 False, 운영은 True
             samesite='Lax',
             max_age=7 * 24 * 60 * 60,
         )
 
         return response
-
 
 
 class ManagerLogoutView(APIView):
