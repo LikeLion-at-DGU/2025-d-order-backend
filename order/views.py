@@ -9,7 +9,8 @@ from django.shortcuts import get_object_or_404
 from .serializers import *
 from django.db.models import Sum, F
 from django.utils.timezone import now
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+
 
 class ConfirmCartOrderView(APIView):
     def post(self, request):
@@ -732,4 +733,40 @@ class TableOrderGroupView(APIView):
             "message": "테이블별 주문 조회 성공",
             "code": 200,
             "data": response_data
+        }, status=200)
+
+class PublicMenuListView(APIView):
+    permission_classes =[AllowAny]  # 로그인 없이 접근 가능
+
+    def get(self, request, booth_id):
+        booth = get_object_or_404(Booth, id=booth_id)
+        manager = get_object_or_404(Manager, booth=booth)
+        menus = Menu.objects.filter(booth_id=booth)
+
+        # 좌석 요금 정보 정리
+        if manager.seat_type == "PP":
+            seat_info = {"seat_type": "person", "seat_tax_person": manager.seat_tax_person or 0}
+        elif manager.seat_type == "PT":
+            seat_info = {"seat_type": "table", "seat_tax_table": manager.seat_tax_table or 0}
+        else:
+            seat_info = {"seat_type": "none"}
+
+        # 메뉴 리스트 구성
+        menu_list = [{
+            "menu_id": menu.id,
+            "menu_name": menu.menu_name,
+            "menu_description": menu.menu_description,
+            "menu_price": menu.menu_price,
+            "menu_image": request.build_absolute_uri(menu.menu_image.url) if menu.menu_image else None,
+            "menu_type": "normal"
+        } for menu in menus]
+
+        return Response({
+            "status": "success",
+            "message": "메뉴 목록 조회 성공",
+            "code": 200,
+            "data": {
+                "seat": seat_info,
+                "menus": menu_list
+            }
         }, status=200)
