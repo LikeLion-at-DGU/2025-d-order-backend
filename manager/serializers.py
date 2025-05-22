@@ -65,50 +65,34 @@ class LoginSerializer(serializers.Serializer):
         username = data.get("username")
         password = data.get("password")
 
-        # 1. 아이디 존재 여부 확인
         if not User.objects.filter(username=username).exists():
             raise serializers.ValidationError({
                 "message": "일치하지 않는 아이디에요.",
                 "code": 401,
-                "data": None,
-                "token": None
+                "data": None
             })
 
-        # 2. 비밀번호 확인 (아이디는 존재하므로 authenticate 가능)
         user = authenticate(username=username, password=password)
         if not user:
             raise serializers.ValidationError({
                 "message": "일치하지 않는 비밀번호에요.",
                 "code": 401,
-                "data": None,
-                "token": None
+                "data": None
             })
 
-        # 3. Manager 유무 확인
         try:
             manager = Manager.objects.get(user=user)
         except Manager.DoesNotExist:
             raise serializers.ValidationError({
                 "message": "해당 유저는 매니저가 아닙니다.",
                 "code": 403,
-                "data": None,
-                "token": None
+                "data": None
             })
 
-        # 4. 토큰 발급
-        refresh = RefreshToken.for_user(user)
-
+        # 토큰은 뷰에서 생성하도록 유저만 넘김
         return {
-            "message": "로그인 성공",
-            "code": 200,
-            "data": {
-                "manager_id": manager.pk,
-                "booth_id": manager.booth_id
-            },
-            "token": {
-                "access": str(refresh.access_token),
-                "refresh": str(refresh)
-            }
+            "user": user,
+            "manager": manager,
         }
 
 class ManagerMyPageSerializer(serializers.ModelSerializer):

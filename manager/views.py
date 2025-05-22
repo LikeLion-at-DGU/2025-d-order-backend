@@ -14,6 +14,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 import qrcode
 from io import BytesIO
 from django.core.files.base import ContentFile
+from rest_framework_simplejwt.tokens import RefreshToken
+
 
 
 class ManagerSignupView(APIView):
@@ -116,30 +118,59 @@ class UsernameCheckView(APIView):
 
 class ManagerLoginView(APIView):
     permission_classes = [AllowAny]
+
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
-        try:
-            # raise_exception=True면 validate()에서 던진 ValidationError가 바로 터집니다
-            serializer.is_valid(raise_exception=True)
-        except ValidationError as e:
-            # e.detail이 우리가 validate()에서 만든 dict 그대로 들어있음
-            return Response(e.detail, status=status.HTTP_200_OK)
+        serializer.is_valid(raise_exception=True)
 
-        # 검증 성공 시, validate()에서 리턴한 dict (message, code, data, token)
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        user = serializer.validated_data['user']
+        manager = serializer.validated_data['manager']
+
+        # JWT 토큰 발급
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+
+        response = Response({
+            "message": "로그인 성공",
+            "code": 200,
+            "data": {
+                "manager_id": manager.pk,
+                "booth_id": manager.booth_id
+            }
+        }, status=status.HTTP_200_OK)
+
+        # 쿠키에 access_token 저장 (5분)
+        response.set_cookie(
+            key='access_token',
+            value=access_token,
+            httponly=True,
+            secure=True,  # 개발 중 false, 배포 시 True
+            samesite='Lax',
+            max_age=5 * 60,
+        )
+
+        #쿠키에 refresh_token 저장 (7일)
+        response.set_cookie(
+            key='refresh_token',
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            samesite='Lax',
+            max_age=7 * 24 * 60 * 60,
+        )
+
+        return response
+
+
 
 class ManagerLogoutView(APIView):
     def post(self, request):
-        try:
-            refresh_token = request.data["refresh"]
-            token = RefreshToken(refresh_token)
-            token.blacklist()  # 로그아웃 refresh 토큰  db에 저장
-            return Response({"message": "로그아웃 되었습니다."}, status=200)
-        except KeyError:
-            return Response({"message": "Refresh token이 필요합니다."}, status=400)
-        except TokenError:
-            return Response({"message": "유효하지 않은 토큰입니다."}, status=400)
-        
+        response = Response({"message": "로그아웃 되었습니다."})
+        response.delete_cookie('access_token')
+        response.delete_cookie('refresh_token')
+        return response
+
 
 
 
