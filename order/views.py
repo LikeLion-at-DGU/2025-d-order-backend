@@ -629,7 +629,7 @@ class OrderCheckView(APIView):
 
         # 테이블의 진행 중인 cart 찾기
         try:
-            cart = Cart.objects.get(table_id=table_id, cart_status=True)
+            cart = Cart.objects.get(table_id=table_id, cart_status=False)
         except Cart.DoesNotExist:
             return Response({
                 "status": "error",
@@ -638,21 +638,34 @@ class OrderCheckView(APIView):
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
 
-        # cart 상태 변경
-        cart.cart_status = False
-        cart.save()
+        table = get_object_or_404(Table, id=table_id)
 
-        # 가장 최신 order 하나 상태 변경
-        order = Order.objects.filter(cart_id=cart).order_by('-created_at').first()
-        if order:
-            order.order_status = "completed"
-            order.save()
+        # 5. 인원수 계산 (menu_category == "테이블 이용료"인 Order의 menu_num 총합)
+        orders = Order.objects.filter(cart_id=cart)
+        people_count = sum(
+            order.menu_num for order in orders
+            if order.menu_id.menu_category == "테이블 이용료"
+        )
+
+        # 6. 결제 금액
+        total_price = cart.total_price
+
+        # 7. 가장 최신 Order 상태 변경
+        latest_order = orders.order_by('-created_at').first()
+        if latest_order:
+            latest_order.order_status = "order_complete"
+            latest_order.save()
 
         return Response({
             "status": "success",
             "message": "결제가 확인되었습니다.",
             "code": 200,
-            "data": None
+            "data": {
+                "table_id": table.id,
+                "table_num": table.table_num,
+                "people_count": people_count,
+                "total_price": total_price
+            }
         }, status=status.HTTP_200_OK)
     
 class TableOrderGroupView(APIView):
