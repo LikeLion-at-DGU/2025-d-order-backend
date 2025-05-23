@@ -55,6 +55,7 @@ class TableListView(APIView):
             # 해당 테이블의 'order_complete' 주문만 필터링
             orders_all = Order.objects.filter(
                 cart_id__table_id=table,
+                cart_id__cart_status=True,
                 order_status='order_complete'
             ).select_related('menu_id').order_by('created_at')
 
@@ -70,6 +71,7 @@ class TableListView(APIView):
             response_data.append({
                 "table_num": table.table_num,
                 "table_price": total_price,
+                "table_status": table.table_status,
                 "created_at": first_order.created_at if first_order else None,
                 "orders": orders_serialized
             })
@@ -107,6 +109,7 @@ class TableDetailView(APIView):
             "data": {
                 "table_num": table.table_num,
                 "table_price": total_price,
+                "table_status": table.table_status,
                 "created_at": first_order.created_at if first_order else None,
                 "orders": orders_serialized
             }
@@ -117,7 +120,12 @@ class CancelOrUpdateOrderView(APIView):
         booth = manager.booth
 
         table = get_object_or_404(Table, booth_id=booth.id, table_num=table_num)
-        order = get_object_or_404(Order, id=order_id, cart_id__table_id=table)
+        order = get_object_or_404(
+            Order,
+            id=order_id,
+            cart_id__table_id=table,
+            cart_id__cart_status=True 
+        )
         
         action = request.data.get("action")
         
@@ -186,7 +194,12 @@ class ResetTableView(APIView):
         return Response({
             "status": "success",
             "message": f"{table.table_num}번 테이블이 리셋되었습니다.",
-            "code": 200
+            "code": 200,
+            "data": {
+                "table_id": table.id,
+                "table_num": table.table_num,
+                "table_status": table.table_status
+            }
         }, status=200)
 
 class EnterTableView(APIView):
