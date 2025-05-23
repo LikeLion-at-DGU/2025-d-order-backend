@@ -212,7 +212,7 @@ class MenuCreateView(APIView):
 
     def post(self, request):
         try:
-            serializer = MenuSerializer(data=request.data)
+            serializer = MenuSerializer(data=request.data, context={'request': request})
 
             # 1. 로그인한 유저의 Manager 조회 (예외 대비)
             try:
@@ -246,7 +246,6 @@ class MenuCreateView(APIView):
                         "menu_name": menu.menu_name,
                         "menu_category": menu.menu_category,
                         "menu_price": menu.menu_price,
-                        "menu_amount": menu.menu_amount,
                         "menu_remain": menu.menu_remain,
                         "menu_image": request.build_absolute_uri(menu.menu_image.url) if menu.menu_image else None
                     }
@@ -284,6 +283,13 @@ class MenuPatchDeleteView(
         manager = Manager.objects.get(user=self.request.user)
         return Menu.objects.filter(booth_id=manager.booth)
     
+    def get_serializer(self, *args, **kwargs):
+        kwargs['context'] = self.get_serializer_context()
+        return self.serializer_class(*args, **kwargs)
+
+    def get_serializer_context(self):
+        return {'request': self.request}
+    
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
 
@@ -318,7 +324,7 @@ class MenuManagerListView(APIView):
         )
 
         # 직렬화
-        serializer = MenuSerializer(sorted_menus, many=True)
+        serializer = MenuSerializer(sorted_menus, many=True, context={'request': request})
 
         return Response({
             "status": "success",
@@ -736,21 +742,25 @@ class PublicMenuListView(APIView):
 
         # 시리얼라이징
         serializer = MenuSerializer(sorted_normal, many=True, context={"request": request})
+        table_fee = menus.filter(menu_category="테이블 이용료").first()
 
         # seat_info 구성
         if manager.seat_type == "PP":
             seat_info = {
                 "seat_type": "person",
-                "seat_tax_person": manager.seat_tax_person or 0
+                "seat_tax_person": manager.seat_tax_person or 0,
+                "seat_type_menu_id": table_fee.id if table_fee else None
             }
         elif manager.seat_type == "PT":
             seat_info = {
                 "seat_type": "table",
-                "seat_tax_table": manager.seat_tax_table or 0
+                "seat_tax_table": manager.seat_tax_table or 0,
+                "seat_type_menu_id": table_fee.id if table_fee else None
             }
         else:
             seat_info = {
-                "seat_type": "none"
+                "seat_type": "none",
+                "seat_type_menu_id": None
             }
 
         return Response({

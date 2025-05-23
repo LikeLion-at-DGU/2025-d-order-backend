@@ -69,6 +69,7 @@ class MenuSerializer(serializers.ModelSerializer):
     booth_id = serializers.PrimaryKeyRelatedField(read_only=True)
     booth_name = serializers.CharField(source='booth_id.name', read_only=True)
     menu_image = serializers.ImageField(use_url=True, required=False)
+    menu_amount = serializers.IntegerField(write_only=True)
     
     class Meta:
         model = Menu
@@ -80,6 +81,7 @@ class MenuSerializer(serializers.ModelSerializer):
             "menu_description",
             "menu_category",
             "menu_price",
+            "menu_amount",
             "menu_remain",
             "menu_image"
         ]
