@@ -584,6 +584,49 @@ class LastOrderView(APIView):
         }, status=status.HTTP_200_OK)
 
 class OrderCheckView(APIView):
+    def get(self, request):
+        booth_id = request.headers.get("X-Booth-Id")
+        table_num = request.headers.get("X-Table-Number")
+
+        if not booth_id or not table_num:
+            return Response({
+                "status": "error",
+                "message": "헤더에 booth_id 또는 table_num이 누락되었습니다.",
+                "code": 400,
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            booth = Booth.objects.get(id=int(booth_id))
+            table = Table.objects.get(booth_id=booth, table_num=table_num)
+        except (Booth.DoesNotExist, Table.DoesNotExist):
+            return Response({
+                "status": "error",
+                "message": "해당 부스 또는 테이블이 존재하지 않습니다.",
+                "code": 404,
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        cart = Cart.objects.filter(table_id=table, cart_status=False).order_by('-id').first()
+        if not cart:
+            return Response({
+                "status": "error",
+                "message": "진행 중인 주문이 없습니다.",
+                "code": 404,
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({
+            "status": "success",
+            "message": "진행 중인 주문이 존재합니다.",
+            "code": 200,
+            "data": {
+                "table_id": table.id,
+                "table_num": table.table_num,
+                "total_price": cart.total_price
+            }
+        }, status=status.HTTP_200_OK)
+
     def post(self, request):
         booth_id = request.headers.get("X-Booth-Id")
         table_num = request.headers.get("X-Table-Number")
@@ -654,7 +697,6 @@ class OrderCheckView(APIView):
 
         for order in orders:
             menu = order.menu_id
-            menu.save()
 
             order.menu_price = menu.menu_price
             order.order_status = 'order_complete'
@@ -674,7 +716,7 @@ class OrderCheckView(APIView):
                 "total_price": total_price
             }
         }, status=status.HTTP_200_OK)
-    
+            
 class TableOrderGroupView(APIView):
     permission_classes = [IsAuthenticated]
 
