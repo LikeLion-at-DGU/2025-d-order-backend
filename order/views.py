@@ -682,7 +682,7 @@ class TableOrderGroupView(APIView):
         manager = Manager.objects.get(user=request.user)
         booth = manager.booth
 
-        tables = Table.objects.filter(booth_id=booth)
+        tables = Table.objects.filter(booth_id=booth).order_by('table_num')
         response_data = []
 
         for table in tables:
@@ -691,24 +691,25 @@ class TableOrderGroupView(APIView):
             for cart in carts:
                 orders = Order.objects.filter(
                     cart_id=cart,
-                    order_status='order_complete'  # ✅ 주문 완료된 것만 필터링
-                ).select_related('menu_id')               
-                order_data = []
+                    order_status='order_complete'
+                ).select_related('menu_id').order_by('created_at')  # ✅ 오래된 주문부터
 
-                for order in orders:
-                    menu = order.menu_id
-                    order_data.append({
-                        "menu_name": menu.menu_name,
-                        "menu_image": request.build_absolute_uri(menu.menu_image.url) if menu.menu_image else None,
-                        "menu_num": order.menu_num,
-                        "order_status": order.order_status
+                if orders.exists():
+                    order_data = []
+                    for order in orders:
+                        menu = order.menu_id
+                        order_data.append({
+                            "menu_name": menu.menu_name,
+                            "menu_image": request.build_absolute_uri(menu.menu_image.url) if menu.menu_image else None,
+                            "menu_num": order.menu_num,
+                            "order_status": order.order_status
+                        })
+
+                    response_data.append({
+                        "table_num": table.table_num,
+                        "created_at": cart.created_at,
+                        "orders": order_data
                     })
-
-                response_data.append({
-                    "table_num": table.table_num,
-                    "created_at": cart.created_at,
-                    "orders": order_data
-                })
 
         return Response({
             "status": "success",
@@ -716,6 +717,7 @@ class TableOrderGroupView(APIView):
             "code": 200,
             "data": response_data
         }, status=200)
+
 
 class PublicMenuListView(APIView):
     permission_classes = [AllowAny]
