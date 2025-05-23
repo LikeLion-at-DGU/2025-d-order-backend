@@ -1,0 +1,39 @@
+name: Discord PR Notify
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  notify:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send embed message to Discord
+        run: |
+          curl -X POST ${{ secrets.DISCORD_WEBHOOK }} \
+            -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "✅ PR 머지 완료: [${{ github.event.pull_request.title }}]",
+                "color": 3066993,
+                "fields": [
+                  {
+                    "name": "📂 브랜치",
+                    "value": "${{ github.event.pull_request.head.ref }} → ${{ github.event.pull_request.base.ref }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "👤 작성자",
+                    "value": "${{ github.event.pull_request.user.login }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "🔗 PR 링크",
+                    "value": "[PR 보기](${{ github.event.pull_request.html_url }})"
+                  }
+                ],
+                "timestamp": "'$(date --iso-8601=seconds)'"
+              }]
+            }'
