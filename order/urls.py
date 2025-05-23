@@ -6,7 +6,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('order/confirm/', ConfirmCartOrderView.as_view(), name='confirm-cart-order'),
     # path('carts/', AddToCartView.as_view()),
-    path('tables/carts/', TableCartView.as_view()),
+    # path('tables/carts/', TableCartView.as_view()),
     path('tables/orders/', TableOrderView.as_view()),
     path('tables/<int:table_id>/last-order/', LastOrderView.as_view()),
     path('tables/<int:table_id>/order_check/', OrderCheckView.as_view()),

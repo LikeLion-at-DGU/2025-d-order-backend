@@ -104,6 +104,4 @@ class OrderItemSerializer(serializers.Serializer):
     menu_num = serializers.IntegerField(min_value=1)
 
 class ConfirmCartSerializer(serializers.Serializer):
-    booth_id = serializers.IntegerField()
-    table_num = serializers.CharField()
     items = OrderItemSerializer(many=True)
