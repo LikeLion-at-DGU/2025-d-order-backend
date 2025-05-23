@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from corsheaders.defaults import default_headers
 import os, environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -173,6 +174,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'x-booth-id',
+    'x-table-number',
+]
 
 CORS_ALLOWED_ORIGINS = [
     # 로컬 개발용 주소
