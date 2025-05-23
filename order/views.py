@@ -14,6 +14,26 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 
 class ConfirmCartOrderView(APIView):
     def post(self, request):
+        # 헤더에서 booth_id와 table_num 추출
+        booth_id = request.headers.get("X-Booth-Id")
+        table_num = request.headers.get("X-Table-Number")
+
+        if not booth_id or not table_num:
+            return Response({
+                "status": "fail",
+                "message": "헤더에 booth_id 또는 table_num이 없습니다.",
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            table = Table.objects.get(booth_id=booth_id, table_num=table_num)
+        except Table.DoesNotExist:
+            return Response({
+                "status": "fail",
+                "message": "해당 테이블이 존재하지 않습니다.",
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
+
         serializer = ConfirmCartSerializer(data=request.data)
         if not serializer.is_valid():
             return Response({
@@ -22,8 +42,6 @@ class ConfirmCartOrderView(APIView):
                 "code": 400
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        booth_id = serializer.validated_data['booth_id']
-        table_num = serializer.validated_data['table_num']
         items = serializer.validated_data['items']
 
         booth = get_object_or_404(Booth, id=booth_id)
@@ -60,7 +78,6 @@ class ConfirmCartOrderView(APIView):
             menu = get_object_or_404(Menu, id=item['menu_id'])
             menu_num = item['menu_num']
 
-            # 재고 체크
             if menu.menu_remain < menu_num:
                 return Response({
                     "status": "fail",
@@ -81,7 +98,6 @@ class ConfirmCartOrderView(APIView):
             total_price += menu.menu_price * menu_num
             created_orders.append(order.id)
 
-        cart.cart_status = False
         cart.total_price = total_price
         cart.save()
 
@@ -96,51 +112,6 @@ class ConfirmCartOrderView(APIView):
                 "total_price": total_price
             }
         }, status=status.HTTP_201_CREATED)
-    
-class TableCartView(APIView):
-    def get(self, request):
-        booth_id = request.headers.get("X-Booth-Id")
-        table_number = request.headers.get("X-Table-Number")
-
-        if not booth_id or not table_number:
-            return Response({
-                "status": "fail",
-                "message": "헤더에 booth_id 또는 table_number가 누락되었습니다.",
-                "code": 400
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            table = Table.objects.get(booth_id=booth_id, table_num=table_number)
-        except Table.DoesNotExist:
-            return Response({
-                "status": "fail",
-                "message": "해당 테이블이 존재하지 않습니다.",
-                "code": 404
-            }, status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            cart = Cart.objects.get(table_id=table, cart_status=False)
-        except Cart.DoesNotExist:
-            return Response({
-                "status": "fail",
-                "message": "장바구니가 존재하지 않습니다.",
-                "code": 404
-            }, status=status.HTTP_404_NOT_FOUND)
-
-        orders = Order.objects.filter(cart_id=cart).select_related('menu_id')
-        serializer = CartSummarySerializer(orders, many=True)
-
-        return Response({
-            "status": "success",
-            "message": "장바구니 조회 완료",
-            "code": 200,
-            "data": {
-                "cart_id": cart.id,
-                "table_id": table.id,
-                "total_price": cart.total_price,
-                "orders": serializer.data
-            }
-        }, status=status.HTTP_200_OK)
     
 class TableOrderView(APIView):
     def get(self, request):
@@ -831,5 +802,50 @@ class PublicMenuListView(APIView):
 #             "data": {
 #                 "cart_id": cart.id,
 #                 "cart_status": cart.cart_status
+#             }
+#         }, status=status.HTTP_200_OK)
+
+# class TableCartView(APIView):
+#     def get(self, request):
+#         booth_id = request.headers.get("X-Booth-Id")
+#         table_number = request.headers.get("X-Table-Number")
+
+#         if not booth_id or not table_number:
+#             return Response({
+#                 "status": "fail",
+#                 "message": "헤더에 booth_id 또는 table_number가 누락되었습니다.",
+#                 "code": 400
+#             }, status=status.HTTP_400_BAD_REQUEST)
+
+#         try:
+#             table = Table.objects.get(booth_id=booth_id, table_num=table_number)
+#         except Table.DoesNotExist:
+#             return Response({
+#                 "status": "fail",
+#                 "message": "해당 테이블이 존재하지 않습니다.",
+#                 "code": 404
+#             }, status=status.HTTP_404_NOT_FOUND)
+
+#         try:
+#             cart = Cart.objects.get(table_id=table, cart_status=False)
+#         except Cart.DoesNotExist:
+#             return Response({
+#                 "status": "fail",
+#                 "message": "장바구니가 존재하지 않습니다.",
+#                 "code": 404
+#             }, status=status.HTTP_404_NOT_FOUND)
+
+#         orders = Order.objects.filter(cart_id=cart).select_related('menu_id')
+#         serializer = CartSummarySerializer(orders, many=True)
+
+#         return Response({
+#             "status": "success",
+#             "message": "장바구니 조회 완료",
+#             "code": 200,
+#             "data": {
+#                 "cart_id": cart.id,
+#                 "table_id": table.id,
+#                 "total_price": cart.total_price,
+#                 "orders": serializer.data
 #             }
 #         }, status=status.HTTP_200_OK)
