@@ -747,7 +747,7 @@ class PublicMenuListView(APIView):
             "message": "메뉴 목록 조회 성공",
             "code": 200,
             "data": {
-                "booth_id": booth.id,
+                "booth_name": booth.name,
                 "seat": seat_info,
                 "menus": [
                     {
