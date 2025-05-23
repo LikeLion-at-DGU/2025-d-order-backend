@@ -96,52 +96,27 @@ class ConfirmCartOrderView(APIView):
                 "total_price": total_price
             }
         }, status=status.HTTP_201_CREATED)
-
-class OrderFixView(APIView):
-    def patch(self, request, cart_id):
-        cart = get_object_or_404(Cart, id=cart_id)
-        table = cart.table_id
-
-        cart_status = request.data.get('cart_status')
-        
-        if cart.cart_status:
-            return Response({
-                "status": "fail",
-                "message": "이미 확정된 주문입니다.",
-                "code": 400
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        orders = Order.objects.filter(cart_id=cart).select_related('menu_id')
-
-        now_time = now()
-        
-        for order in orders:
-            menu = order.menu_id
-            menu.menu_remain -= order.menu_num
-            menu.save()
-
-            order.menu_price = menu.menu_price  #주문 시점 가격 저장
-            order.order_status = 'order_complete'
-            order.created_at = now_time
-            order.save()
-
-        cart.cart_status = True
-        cart.save()
-
-
-        return Response({
-            "status": "success",
-            "message": "주문이 확정되었습니다.",
-            "code": 200,
-            "data": {
-                "cart_id": cart.id,
-                "cart_status": cart.cart_status
-            }
-        }, status=status.HTTP_200_OK)
     
 class TableCartView(APIView):
-    def get(self, request, table_id):
-        table = get_object_or_404(Table, id=table_id)
+    def get(self, request):
+        booth_id = request.headers.get("X-Booth-Id")
+        table_number = request.headers.get("X-Table-Number")
+
+        if not booth_id or not table_number:
+            return Response({
+                "status": "fail",
+                "message": "헤더에 booth_id 또는 table_number가 누락되었습니다.",
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            table = Table.objects.get(booth_id=booth_id, table_num=table_number)
+        except Table.DoesNotExist:
+            return Response({
+                "status": "fail",
+                "message": "해당 테이블이 존재하지 않습니다.",
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
 
         try:
             cart = Cart.objects.get(table_id=table, cart_status=False)
@@ -168,11 +143,27 @@ class TableCartView(APIView):
         }, status=status.HTTP_200_OK)
     
 class TableOrderView(APIView):
-    def get(self, request, table_id):
-        table = get_object_or_404(Table, id=table_id)
+    def get(self, request):
+        booth_id = request.headers.get("X-Booth-Id")
+        table_number = request.headers.get("X-Table-Number")
+
+        if not booth_id or not table_number:
+            return Response({
+                "status": "fail",
+                "message": "헤더에 booth_id 또는 table_number가 누락되었습니다.",
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            table = Table.objects.get(booth_id=booth_id, table_num=table_number)
+        except Table.DoesNotExist:
+            return Response({
+                "status": "fail",
+                "message": "해당 테이블이 존재하지 않습니다.",
+                "code": 404
+            }, status=status.HTTP_404_NOT_FOUND)
 
         carts = Cart.objects.filter(table_id=table, cart_status=True)
-
         if not carts.exists():
             return Response({
                 "stats": "fail",
@@ -672,7 +663,7 @@ class OrderCheckView(APIView):
         # 7. 가장 최신 Order 상태 변경
         for order in orders:
             menu = order.menu_id
-            menu.menu_remain -= order.menu_num
+            # menu.menu_remain -= order.menu_num
             menu.save()
 
             order.menu_price = menu.menu_price  #주문 시점 가격 저장
@@ -770,3 +761,46 @@ class PublicMenuListView(APIView):
                 "menus": menu_list
             }
         }, status=200)
+    
+
+# class OrderFixView(APIView):
+#     def patch(self, request, cart_id):
+#         cart = get_object_or_404(Cart, id=cart_id)
+#         table = cart.table_id
+
+#         cart_status = request.data.get('cart_status')
+        
+#         if cart.cart_status:
+#             return Response({
+#                 "status": "fail",
+#                 "message": "이미 확정된 주문입니다.",
+#                 "code": 400
+#             }, status=status.HTTP_400_BAD_REQUEST)
+        
+#         orders = Order.objects.filter(cart_id=cart).select_related('menu_id')
+
+#         now_time = now()
+        
+#         for order in orders:
+#             menu = order.menu_id
+#             menu.menu_remain -= order.menu_num
+#             menu.save()
+
+#             order.menu_price = menu.menu_price  #주문 시점 가격 저장
+#             order.order_status = 'order_complete'
+#             order.created_at = now_time
+#             order.save()
+
+#         cart.cart_status = True
+#         cart.save()
+
+
+#         return Response({
+#             "status": "success",
+#             "message": "주문이 확정되었습니다.",
+#             "code": 200,
+#             "data": {
+#                 "cart_id": cart.id,
+#                 "cart_status": cart.cart_status
+#             }
+#         }, status=status.HTTP_200_OK)
