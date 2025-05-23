@@ -689,7 +689,10 @@ class TableOrderGroupView(APIView):
             carts = Cart.objects.filter(table_id=table, cart_status=True).order_by('created_at')
 
             for cart in carts:
-                orders = Order.objects.filter(cart_id=cart).select_related('menu_id')
+                orders = Order.objects.filter(
+                    cart_id=cart,
+                    order_status='order_complete'  # ✅ 주문 완료된 것만 필터링
+                ).select_related('menu_id')               
                 order_data = []
 
                 for order in orders:
