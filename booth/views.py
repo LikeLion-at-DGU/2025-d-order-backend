@@ -12,6 +12,22 @@ from django.utils.timezone import now
 from django.http import FileResponse
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import Booth
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
+
+class CookieTokenRefreshView(APIView):
+    def post(self, request):
+        refresh_token = request.COOKIES.get('refresh_token')
+
+        if refresh_token is None:
+            return Response({"message": "refresh_token 쿠키가 없습니다."}, status=401)
+
+        try:
+            refresh = RefreshToken(refresh_token)
+            access_token = str(refresh.access_token)
+            return Response({"access": access_token}, status=200)
+        except TokenError:
+            return Response({"message": "리프레시 토큰이 유효하지 않습니다."}, status=401)
+
 
 class BoothQRView(APIView):
 

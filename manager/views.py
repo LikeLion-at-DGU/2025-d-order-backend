@@ -14,8 +14,36 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 import qrcode
 from io import BytesIO
 from django.core.files.base import ContentFile
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
+class CookieTokenRefreshView(APIView):
+    def get(self, request):
+        refresh_token = request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({
+                "message": "refresh_token 쿠키가 없습니다.",
+                "code": 401,
+                "data": None
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            token = RefreshToken(refresh_token)
+
+
+            # 정상 리프레시 토큰일 경우 새 액세스 발급
+            new_access = str(token.access_token)
+            return Response({
+                "message": "access_token 재발급 완료",
+                "code": 200,
+                "data": {"access_token": new_access}
+            }, status=status.HTTP_200_OK)
+
+        except TokenError:
+            return Response({
+                "message": "유효하지 않은 refresh token입니다.",
+                "code": 401,
+                "data": None
+            }, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class ManagerSignupView(APIView):
