@@ -158,15 +158,20 @@ class TableOrderView(APIView):
         }, status=status.HTTP_200_OK)
     
 class BoothOrderView(APIView):
-    def get(self, request, booth_id):
-        booth = get_object_or_404(Booth, id=booth_id)
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        manager = Manager.objects.get(user=request.user)
+        booth = manager.booth
 
         menus = Menu.objects.filter(booth_id=booth)
 
         order_complete_orders = Order.objects.filter(
             menu_id__in=menus,
-            order_status='order_complete'
-        )
+            order_status='order_complete',
+            menu_id__menu_category__in=['메뉴', '음료']
+        ).order_by('created_at')
+
 
         # 총 매출 계산 
         total_revenue_qs = Order.objects.filter(
@@ -190,11 +195,16 @@ class BoothOrderView(APIView):
         }, status=status.HTTP_200_OK)
     
 class UpdateOrderStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def patch(self, request, order_id):
+        manager = Manager.objects.get(user=request.user)
         order = get_object_or_404(Order, id=order_id)
+        menu = order.menu_id
+        booth = menu.booth_id
 
+        # 상태 업데이트
         new_status = request.data.get('order_status')
-
         order.order_status = 'served_complete'
         order.save()
 
