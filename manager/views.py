@@ -46,11 +46,12 @@ class ManagerSignupView(APIView):
 
             #  회원가입 이후 table_num만큼 테이블 자동 생성
             for i in range(1, manager.table_num + 1):
-                Table.objects.create(
-                    booth_id=manager.booth,
-                    table_num=i,
-                    table_status='out'
-                )
+                if not Table.objects.filter(booth_id=manager.booth, table_num=i).exists():
+                    Table.objects.create(
+                        booth_id=manager.booth,
+                        table_num=i,
+                        table_status='out'
+        )
             # 2. 자릿세 메뉴 자동 생성
             if manager.seat_type in ['PT', 'PP']:
                 # 중복 생성 방지

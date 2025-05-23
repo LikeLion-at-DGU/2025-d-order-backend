@@ -21,3 +21,5 @@ class Table(models.Model):
     booth_id = models.ForeignKey('Booth', on_delete=models.CASCADE)
     table_num = models.IntegerField()
     table_status = models.CharField(max_length=10)
+    class Meta:
+        unique_together = ('booth_id', 'table_num')
