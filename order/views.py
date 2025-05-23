@@ -841,6 +841,59 @@ class PublicMenuListView(APIView):
                 ]
             }
         }, status=200)
+        
+class CartPaymentInfoView(APIView):
+    def get(self, request):
+        booth_id = request.headers.get("X-Booth-Id")
+        table_num = request.headers.get("X-Table-Number")
+
+        if not booth_id or not table_num:
+            return Response({
+                "status": "fail",
+                "message": "헤더에 booth_id 또는 table_num이 누락되었습니다.",
+                "code": 400
+            }, status=400)
+
+        try:
+            booth = Booth.objects.get(id=booth_id)
+            table = Table.objects.get(booth_id=booth, table_num=table_num)
+        except (Booth.DoesNotExist, Table.DoesNotExist):
+            return Response({
+                "status": "fail",
+                "message": "해당 부스 또는 테이블이 존재하지 않습니다.",
+                "code": 404
+            }, status=404)
+
+        # 진행 중인 cart 조회
+        cart = Cart.objects.filter(table_id=table, cart_status=False).order_by('-id').first()
+        if not cart:
+            return Response({
+                "status": "fail",
+                "message": "진행 중인 장바구니가 없습니다.",
+                "code": 404
+            }, status=404)
+
+        try:
+            manager = Manager.objects.get(booth=booth)
+        except Manager.DoesNotExist:
+            return Response({
+                "status": "fail",
+                "message": "해당 부스의 매니저 정보가 없습니다.",
+                "code": 404
+            }, status=404)
+
+        return Response({
+            "status": "success",
+            "message": "결제 정보 조회 성공",
+            "code": 200,
+            "data": {
+                "depositor": manager.depositor,
+                "bank": manager.bank,
+                "account": manager.account,
+                "total_price": cart.total_price
+            }
+        }, status=200)
+
 
 
 # class OrderFixView(APIView):
