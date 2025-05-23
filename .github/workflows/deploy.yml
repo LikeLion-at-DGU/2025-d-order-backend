@@ -21,7 +21,7 @@ jobs:
           key: ${{ secrets.EC2_KEY }}
           script: |
             cd ~/2025-d-order-backend
-            git pull upstream dev
+            git pull origin dev
             source ~/venv/bin/activate
             pip install -r requirements.txt
             python manage.py migrate
