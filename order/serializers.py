@@ -71,7 +71,16 @@ class MenuSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Menu
-        fields = '__all__'
+        fields = [
+            "id",
+            "booth_id",
+            "menu_name",
+            "menu_description",
+            "menu_category",
+            "menu_price",
+            "menu_remain",
+            "menu_image"
+        ]
         extra_kwargs = {
             'menu_remain': {'required': False}  
         }
