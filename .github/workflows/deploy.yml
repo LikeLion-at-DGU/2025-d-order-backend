@@ -24,12 +24,15 @@ jobs:
           source venv/bin/activate
           pip install -r requirements.txt
 
-      - name: Django System Check 🛠️
+      - name: Load .env for CI
+        run: cp .env.ci .env    
+
+      - name: Django System Check
         run: |
           source venv/bin/activate
           python manage.py check
 
-      - name: Check for Unapplied Model Changes 📦
+      - name: Check for Unapplied Model Changes
         run: |
           source venv/bin/activate
           python manage.py makemigrations --check --dry-run
