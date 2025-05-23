@@ -578,8 +578,18 @@ class LastOrderView(APIView):
         }, status=status.HTTP_200_OK)
 
 class OrderCheckView(APIView):
-    def post(self, request, table_id):
+    def post(self, request):
+        booth_id = request.headers.get("X-Booth-Id")
+        table_num = request.headers.get("X-Table-Number")
         password = request.data.get("order_check_password")
+
+        if not booth_id or not table_num:
+            return Response({
+                "status": "error",
+                "message": "헤더에 booth_id 또는 table_num이 누락되었습니다.",
+                "code": 400,
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         if not password:
             return Response({
@@ -589,12 +599,28 @@ class OrderCheckView(APIView):
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # 테이블 및 매니저 정보 조회
-        table = get_object_or_404(Table, id=table_id)
-        booth = table.booth_id
+        try:
+            booth = Booth.objects.get(id=int(booth_id))
+        except Booth.DoesNotExist:
+            return Response({
+                "status": "error",
+                "message": "해당 부스가 존재하지 않습니다.",
+                "code": 404,
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            table = Table.objects.get(booth_id=booth, table_num=table_num)
+        except Table.DoesNotExist:
+            return Response({
+                "status": "error",
+                "message": "해당 테이블이 존재하지 않습니다.",
+                "code": 404,
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+
         manager = get_object_or_404(Manager, booth=booth)
 
-        # 비밀번호 검증
         if manager.order_check_password != password:
             return Response({
                 "status": "error",
@@ -603,9 +629,8 @@ class OrderCheckView(APIView):
                 "data": None
             }, status=status.HTTP_401_UNAUTHORIZED)
 
-        # 테이블의 진행 중인 cart 찾기
-        cart = Cart.objects.filter(table_id=table_id, cart_status=False).order_by('-id').first()
-
+        # 진행 중인 cart 조회
+        cart = Cart.objects.filter(table_id=table, cart_status=False).order_by('-id').first()
         if not cart:
             return Response({
                 "status": "error",
@@ -614,37 +639,24 @@ class OrderCheckView(APIView):
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
 
-        table = get_object_or_404(Table, id=table_id)
-
-        # 5. 인원수 계산 (테이블의 완료된 cart 중 "테이블 이용료" 메뉴들의 수량 합계)
-        completed_carts = Cart.objects.filter(table_id=table_id, cart_status=True)
-        orders = Order.objects.filter(cart_id__in=completed_carts).select_related('menu_id')
-
-        people_count = sum(
-            order.menu_num for order in orders
-            if order.menu_id.menu_category == "테이블 이용료"
-        )
-
-        # 6. 결제 금액
+        # 결제 총액
         total_price = cart.total_price
 
+        # 주문 상태 업데이트
         orders = Order.objects.filter(cart_id=cart).select_related('menu_id')
         now_time = now()
 
-        # 7. 가장 최신 Order 상태 변경
         for order in orders:
             menu = order.menu_id
-            # menu.menu_remain -= order.menu_num
             menu.save()
 
-            order.menu_price = menu.menu_price  #주문 시점 가격 저장
+            order.menu_price = menu.menu_price
             order.order_status = 'order_complete'
             order.created_at = now_time
             order.save()
 
         cart.cart_status = True
         cart.save()
-
 
         return Response({
             "status": "success",
@@ -653,7 +665,6 @@ class OrderCheckView(APIView):
             "data": {
                 "table_id": table.id,
                 "table_num": table.table_num,
-                "people_count": people_count,
                 "total_price": total_price
             }
         }, status=status.HTTP_200_OK)
