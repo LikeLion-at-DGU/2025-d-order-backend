@@ -727,30 +727,49 @@ class TableOrderGroupView(APIView):
         }, status=200)
 
 class PublicMenuListView(APIView):
-    permission_classes =[AllowAny]  # 로그인 없이 접근 가능
+    permission_classes = [AllowAny]
 
     def get(self, request, booth_id):
         booth = get_object_or_404(Booth, id=booth_id)
         manager = get_object_or_404(Manager, booth=booth)
+
         menus = Menu.objects.filter(booth_id=booth)
 
-        # 좌석 요금 정보 정리
-        if manager.seat_type == "PP":
-            seat_info = {"seat_type": "person", "seat_tax_person": manager.seat_tax_person or 0}
-        elif manager.seat_type == "PT":
-            seat_info = {"seat_type": "table", "seat_tax_table": manager.seat_tax_table or 0}
-        else:
-            seat_info = {"seat_type": "none"}
+        # 좌석 요금 정보 추출 (테이블 이용료 메뉴 찾기)
+        table_fee = menus.filter(menu_category="테이블 이용료").first()
 
-        # 메뉴 리스트 구성
-        menu_list = [{
-            "menu_id": menu.id,
-            "menu_name": menu.menu_name,
-            "menu_description": menu.menu_description,
-            "menu_price": menu.menu_price,
-            "menu_image": request.build_absolute_uri(menu.menu_image.url) if menu.menu_image else None,
-            "menu_type": "normal"
-        } for menu in menus]
+        # 나머지 메뉴는 필터링
+        normal_menus = menus.exclude(menu_category="테이블 이용료")
+
+        # 정렬 우선순위 적용
+        category_order = {"메뉴": 1, "음료": 2}
+        sorted_normal = sorted(
+            normal_menus,
+            key=lambda m: (
+                category_order.get(m.menu_category, 99),
+                -m.menu_price,
+                m.id
+            )
+        )
+
+        # 시리얼라이징
+        serializer = MenuSerializer(sorted_normal, many=True, context={"request": request})
+
+        # seat_info 구성
+        if manager.seat_type == "PP":
+            seat_info = {
+                "seat_type": "person",
+                "seat_tax_person": manager.seat_tax_person or 0
+            }
+        elif manager.seat_type == "PT":
+            seat_info = {
+                "seat_type": "table",
+                "seat_tax_table": manager.seat_tax_table or 0
+            }
+        else:
+            seat_info = {
+                "seat_type": "none"
+            }
 
         return Response({
             "status": "success",
@@ -758,10 +777,20 @@ class PublicMenuListView(APIView):
             "code": 200,
             "data": {
                 "seat": seat_info,
-                "menus": menu_list
+                "menus": [
+                    {
+                        "menu_id": m["id"],
+                        "menu_name": m["menu_name"],
+                        "menu_description": m["menu_description"],
+                        "menu_price": m["menu_price"],
+                        "menu_remain": m["menu_remain"],
+                        "menu_image": m["menu_image"],
+                        "menu_category": m["menu_category"]
+                    } for m in serializer.data
+                ]
             }
         }, status=200)
-    
+
 
 # class OrderFixView(APIView):
 #     def patch(self, request, cart_id):
