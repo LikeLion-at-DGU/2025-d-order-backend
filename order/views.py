@@ -697,6 +697,7 @@ class OrderCheckView(APIView):
 
         for order in orders:
             menu = order.menu_id
+            menu.save()
 
             order.menu_price = menu.menu_price
             order.order_status = 'order_complete'
@@ -716,7 +717,7 @@ class OrderCheckView(APIView):
                 "total_price": total_price
             }
         }, status=status.HTTP_200_OK)
-            
+
 class TableOrderGroupView(APIView):
     permission_classes = [IsAuthenticated]
 
