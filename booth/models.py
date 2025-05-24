@@ -23,3 +23,6 @@ class Table(models.Model):
     table_status = models.CharField(max_length=10)
     class Meta:
         unique_together = ('booth_id', 'table_num')
+
+    def __str__(self):
+        return f"Table {self.table_num} (Booth: {self.booth_id.name})"
