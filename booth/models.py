@@ -13,8 +13,8 @@ class Booth(models.Model):
         help_text='부스 전용 QR 코드 이미지'
     )
 
-    def __str__(self):
-        return self.name
+    # def __str__(self):
+    #     return self.name
     
 class Table(models.Model):
     id = models.AutoField(primary_key=True)
