@@ -180,6 +180,12 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     'x-table-number',
 ]
 
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SECURE   = True
+
+
 CORS_ALLOWED_ORIGINS = [
     # 로컬 개발용 주소
     'http://localhost:3000', 
