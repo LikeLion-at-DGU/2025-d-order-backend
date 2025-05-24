@@ -21,8 +21,8 @@ class Menu(models.Model):
     menu_amount = models.IntegerField()
     menu_remain = models.IntegerField()
     menu_image = models.ImageField(upload_to='menu_images/', blank=True, null=True)
-    # def __str__(self):
-    #     return self.menu_name
+
+
 
     
     
@@ -51,7 +51,8 @@ class Menu(models.Model):
         if self.menu_amount is None:
             raise ValueError("menu_amount 값이 필요합니다.")
 
-
+    def __str__(self):
+        return f"{self.menu_name} ({self.menu_category})"
 
 class Cart(models.Model):
     id = models.AutoField(primary_key=True)
@@ -60,6 +61,8 @@ class Cart(models.Model):
     total_price = models.IntegerField()
     created_at = models.DateTimeField(default=now)
 
+    def __str__(self):
+        return f"Cart {self.id} - Table {self.table_id.table_num} / Booth {self.table_id.booth.name}"
     
 class Order(models.Model):
     id = models.AutoField(primary_key=True)
@@ -71,3 +74,5 @@ class Order(models.Model):
     created_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return f"Order {self.id} - Menu: {self.menu_id.menu_name}, Qty: {self.menu_num}"
