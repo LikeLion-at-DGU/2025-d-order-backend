@@ -177,7 +177,7 @@ class ManagerLoginView(APIView):
             value=refresh_token,
             httponly=True,
             secure=True,      # 개발 중엔 False, 운영은 True
-            samesite= None,
+            samesite= 'None',
             max_age=7 * 24 * 60 * 60,
             path='/'
         )
