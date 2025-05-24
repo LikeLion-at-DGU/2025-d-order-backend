@@ -180,14 +180,10 @@ class BoothOrderView(APIView):
             menu_id__menu_category__in=['메뉴', '음료']
         ).order_by('created_at')
 
-
-        # 총 매출 계산 
         total_revenue_qs = Order.objects.filter(
             menu_id__in=menus,
             order_status__in=['order_complete', 'served_complete']
-        ).annotate(
-            item_total=F('menu_num') * F('menu_id__menu_price')
-        ).aggregate(total=Sum('item_total'))
+        ).aggregate(total=Sum(F('menu_num') * F('fixed_price')))
 
         total_revenue = total_revenue_qs['total'] or 0
 
@@ -213,6 +209,11 @@ class UpdateOrderStatusView(APIView):
 
         # 상태 업데이트
         new_status = request.data.get('order_status')
+
+        # fixed_price 누락 방지
+        if order.fixed_price is None:
+            order.fixed_price = order.menu_price
+
         order.order_status = 'served_complete'
         order.save()
 
@@ -530,9 +531,9 @@ class TotalRevenueView(APIView):
 
         total_revenue = Order.objects.filter(
             cart_id__table_id__in=tables,
-            order_status="order_complete"
+            order_status__in=["order_complete", "served_complete"]
         ).aggregate(
-            total=Sum(F("menu_num") * F("menu_price"))
+            total=Sum(F("menu_num") * F("fixed_price"))
         )["total"] or 0
 
         return Response({
@@ -602,9 +603,10 @@ class LastOrderView(APIView):
         }, status=status.HTTP_200_OK)
 
 class OrderCheckView(APIView):
-    def get(self, request):
+    def post(self, request):
         booth_id = request.headers.get("X-Booth-Id")
         table_num = request.headers.get("X-Table-Number")
+        password = request.data.get("order_check_password")
 
         if not booth_id or not table_num:
             return Response({
@@ -614,17 +616,45 @@ class OrderCheckView(APIView):
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            booth = Booth.objects.get(id=int(booth_id))
-            table = Table.objects.get(booth_id=booth, table_num=table_num)
-        except (Booth.DoesNotExist, Table.DoesNotExist):
+        if not password:
             return Response({
                 "status": "error",
-                "message": "해당 부스 또는 테이블이 존재하지 않습니다.",
+                "message": "비밀번호가 누락되었습니다.",
+                "code": 400,
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            booth = Booth.objects.get(id=int(booth_id))
+        except Booth.DoesNotExist:
+            return Response({
+                "status": "error",
+                "message": "해당 부스가 존재하지 않습니다.",
                 "code": 404,
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
 
+        try:
+            table = Table.objects.get(booth_id=booth, table_num=table_num)
+        except Table.DoesNotExist:
+            return Response({
+                "status": "error",
+                "message": "해당 테이블이 존재하지 않습니다.",
+                "code": 404,
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        manager = get_object_or_404(Manager, booth=booth)
+
+        if manager.order_check_password != password:
+            return Response({
+                "status": "error",
+                "message": "비밀번호가 올바르지 않습니다.",
+                "code": 401,
+                "data": None
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # 진행 중인 cart 조회
         cart = Cart.objects.filter(table_id=table, cart_status=False).order_by('-id').first()
         if not cart:
             return Response({
@@ -634,15 +664,35 @@ class OrderCheckView(APIView):
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
 
+        # 결제 총액
+        total_price = cart.total_price
+
+        # 주문 상태 업데이트 및 금액 동결
+        orders = Order.objects.filter(cart_id=cart).select_related('menu_id')
+        now_time = now()
+
+        for order in orders:
+            menu = order.menu_id
+            order.menu_price = menu.menu_price
+            order.fixed_price = menu.menu_price
+            order.order_status = 'order_complete'
+            order.created_at = now_time
+            order.save()
+
+        cart.cart_status = True
+        cart.save()
+
         return Response({
             "status": "success",
-            "message": "진행 중인 주문이 존재합니다.",
+            "message": "결제가 확인되었습니다.",
             "code": 200,
             "data": {
                 "table_num": table.table_num,
-                "total_price": cart.total_price
+                "total_price": total_price
             }
         }, status=status.HTTP_200_OK)
+
+        
 
     def post(self, request):
         booth_id = request.headers.get("X-Booth-Id")
@@ -905,6 +955,7 @@ class CartPaymentInfoView(APIView):
                 "total_price": cart.total_price
             }
         }, status=200)
+
 
 
 
