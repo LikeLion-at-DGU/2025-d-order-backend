@@ -18,10 +18,24 @@ class TableSummarySerializer(serializers.Serializer):
     orders = SimpleOrderSerializer(many=True)
 
 class FullOrderSerializer(serializers.ModelSerializer):
-    menu_name = serializers.CharField(source='menu_id.menu_name')
+    menu_name  = serializers.CharField(source='menu_id.menu_name')
     menu_price = serializers.IntegerField(source='menu_id.menu_price')
+    menu_image = serializers.SerializerMethodField()
 
     class Meta:
-        model = Order
-        fields = ('id', 'menu_name', 'menu_price', 'menu_num', 'order_status')
+        model  = Order
+        fields = (
+            'id',
+            'menu_name',
+            'menu_price',
+            'menu_num',
+            'menu_image',
+            'order_status',
+        )
 
+    def get_menu_image(self, obj):
+        img = obj.menu_id.menu_image
+        if not img:
+            return None
+        request = self.context.get('request')
+        return request.build_absolute_uri(img.url) if request else img.url

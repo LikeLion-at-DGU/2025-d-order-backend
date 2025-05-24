@@ -98,38 +98,52 @@ class TableListView(APIView):
             "code": 200,
             "data": response_data
         }, status=200)
-
+    
+    
 class TableDetailView(APIView):
     def get(self, request, table_num):
         manager = get_object_or_404(Manager, user=request.user)
-        booth = manager.booth
-        table = get_object_or_404(Table, booth_id=booth, table_num=table_num)
+        booth   = manager.booth
+        table   = get_object_or_404(Table, booth_id=booth, table_num=table_num)
 
-        orders_all = Order.objects.filter(
-            cart_id__table_id=table,
-            cart_id__cart_status=True,
-            order_status='order_complete'
-        ).select_related('menu_id').order_by('-created_at')
+        orders_all = (
+            Order.objects
+                 .filter(
+                     cart_id__table_id=table,
+                     cart_id__cart_status=True,
+                     order_status='order_complete'
+                 )
+                 .select_related('menu_id')
+                 .order_by('-created_at')
+        )
 
         first_order = orders_all.first()
         total_price = orders_all.aggregate(
             total=Sum(F('menu_num') * F('menu_id__menu_price'))
         )['total'] or 0
 
-        orders_serialized = FullOrderSerializer(orders_all, many=True).data
+       # Serializer에 request를 context로 넘김
+        orders_serialized = FullOrderSerializer(
+            orders_all,
+            many=True,
+            context={'request': request}
+        ).data
 
         return Response({
-            "status": "success",
+            "status":  "success",
             "message": "테이블 상세 조회 성공",
-            "code": 200,
+            "code":    200,
             "data": {
-                "table_num": table.table_num,
+                "table_num":   table.table_num,
                 "table_price": total_price,
-                "table_status": table.table_status,
-                "created_at": first_order.created_at if first_order else None,
-                "orders": orders_serialized
+                "table_status":table.table_status,
+                "created_at":  first_order.created_at if first_order else None,
+                "orders":      orders_serialized
             }
         })
+
+
+
 class CancelOrUpdateOrderView(APIView):
     def patch(self, request, table_num, order_id):
         manager = get_object_or_404(Manager, user=request.user)
