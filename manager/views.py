@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from rest_framework.generics import RetrieveUpdateAPIView
 from .serializers import ManagerMyPageSerializer
 from manager.models import Manager
-from booth.models import Table
+from booth.models import Table,Booth
 from order.models import Menu
 from rest_framework.permissions import IsAuthenticated, AllowAny
 import qrcode
@@ -177,8 +177,9 @@ class ManagerLoginView(APIView):
             value=refresh_token,
             httponly=True,
             secure=True,      # 개발 중엔 False, 운영은 True
-            samesite='Lax',
+            samesite= None,
             max_age=7 * 24 * 60 * 60,
+            path='/manager/'
         )
 
         return response
@@ -223,12 +224,30 @@ class ManagerMyPageView(RetrieveUpdateAPIView):
         }, status=200)
         
 class BoothNameView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  
 
     def get(self, request):
+        booth_id = request.query_params.get('booth_id')
+        if not booth_id:
+            return Response({
+                "status": "fail",
+                "message": "bcooth_id 파라미터가 없습니다.",
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2) 정수 변환 체크
         try:
-            manager = Manager.objects.get(user=request.user)
-            booth = manager.booth
+            booth_id = int(booth_id)
+        except (TypeError, ValueError):
+            return Response({
+                "status": "fail",
+                "message": "booth_id가 올바른 숫자가 아닙니다.",
+                "code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 3) Booth 모델에서 바로 조회
+        try:
+            booth = Booth.objects.get(id=booth_id)
             return Response({
                 "status": "success",
                 "message": "부스 이름 조회 성공",
@@ -237,10 +256,10 @@ class BoothNameView(APIView):
                     "booth_id": booth.id,
                     "booth_name": booth.name
                 }
-            }, status=200)
-        except Manager.DoesNotExist:
+            }, status=status.HTTP_200_OK)
+        except Booth.DoesNotExist:
             return Response({
                 "status": "fail",
-                "message": "로그인한 관리자 정보가 없습니다.",
+                "message": "해당 booth_id의 부스 정보가 없습니다.",
                 "code": 404
-            }, status=404)
+            }, status=status.HTTP_404_NOT_FOUND)
