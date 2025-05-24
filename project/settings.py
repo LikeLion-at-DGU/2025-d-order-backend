@@ -167,6 +167,12 @@ STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# 요청 바디 전체 제한 (예: 이미지 + 폼 데이터 전체)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 3 * 1024 * 1024  # 3MB
+
+# 업로드 파일 1개가 메모리에 올라가는 최대 용량 (그 이상이면 임시 파일로 저장됨)
+FILE_UPLOAD_MAX_MEMORY_SIZE = 3 * 1024 * 1024  # 3MB
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
