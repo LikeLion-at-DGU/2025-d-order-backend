@@ -49,7 +49,7 @@ class BoothQRView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # FileResponse 로 실제 파일 스트림을 내려줍니다.
+       
         return FileResponse(
             booth.qr_code_image.open('rb'),
             content_type='image/png'
@@ -265,7 +265,7 @@ class EnterTableView(APIView):
 
         return Response({
             "status": "success",
-            "message": "입장 성공! 새 cart 생성됨.",
+            "message": "입장 성공! 새 cart 생성됨",
             "code": 201,
             "data": {
                 "table_id": table.id,
