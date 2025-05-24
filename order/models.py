@@ -4,6 +4,7 @@ from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
 from django.utils.timezone import now
+import os
 
 # Create your models here.
 class Menu(models.Model):
@@ -20,7 +21,7 @@ class Menu(models.Model):
     menu_price = models.IntegerField()
     menu_amount = models.IntegerField()
     menu_remain = models.IntegerField()
-    menu_image = models.ImageField(upload_to='menu_images/', blank=True, null=True)
+    menu_image = models.ImageField(upload_to='menu_images/', max_length=255, blank=True, null=True)
     # def __str__(self):
     #     return self.menu_name
 
@@ -34,13 +35,16 @@ class Menu(models.Model):
             output = BytesIO()
             img.save(output, format='JPEG', quality=70)
             output.seek(0)
-            compressed_image = ContentFile(output.read(), name=image_field_file.name)
+            filename = os.path.basename(image_field_file.name)
+            compressed_image = ContentFile(output.read(), name=filename)
             setattr(self, image_field_name, compressed_image)
         except Exception as e:
             print("이미지 압축 실패:", str(e))
             raise
 
     def save(self, *args, **kwargs):
+        if self.menu_amount is None:
+            raise ValueError("menu_amount 값이 필요합니다.")
         # 처음 생성 시에만 menu_remain을 menu_amount와 같게 설정
         if self._state.adding and self.menu_remain is None:
             self.menu_remain = self.menu_amount
@@ -48,9 +52,6 @@ class Menu(models.Model):
         if self.menu_image:
             self.compress_image(self.menu_image, 'menu_image')
         super().save(*args, **kwargs)
-        if self.menu_amount is None:
-            raise ValueError("menu_amount 값이 필요합니다.")
-
 
 
 class Cart(models.Model):
