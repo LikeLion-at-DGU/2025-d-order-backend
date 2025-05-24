@@ -151,7 +151,7 @@ class TableOrderView(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
         
         orders = Order.objects.filter(cart_id__in=carts).select_related('menu_id').order_by('-created_at')
-        serializer = TableOrderSerializer(orders, many=True)
+        serializer = TableOrderSerializer(orders, many=True, context={'request': request})
 
         total_price = sum(
             order.menu_id.menu_price * order.menu_num for order in orders
