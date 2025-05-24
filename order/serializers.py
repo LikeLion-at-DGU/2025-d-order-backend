@@ -82,6 +82,8 @@ class MenuSerializer(serializers.ModelSerializer):
     booth_name = serializers.CharField(source='booth_id.name', read_only=True)
     menu_image = serializers.ImageField(use_url=True, required=False)
     menu_amount = serializers.IntegerField(write_only=True)
+    menu_remain = serializers.IntegerField(required=False)  # ✅ 이 줄 추가
+
     
     class Meta:
         model = Menu
