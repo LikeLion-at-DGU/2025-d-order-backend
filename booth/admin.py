@@ -3,7 +3,6 @@ from .models import *
 
 
 admin.site.register(Booth)
-admin.site.register(Table)
 
 @admin.register(Table)
 class TableAdmin(admin.ModelAdmin):
