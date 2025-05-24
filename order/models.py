@@ -66,7 +66,7 @@ class Cart(models.Model):
     created_at = models.DateTimeField(default=now)
 
     def __str__(self):
-        return f"Cart {self.id} - Table {self.table_id.table_num} / Booth {self.table_id.booth.name}"
+        return f"Cart {self.id} - Table {self.table_id.table_num} / Booth {self.table_id.booth_id.name}"
     
 class Order(models.Model):
     id = models.AutoField(primary_key=True)
