@@ -191,7 +191,7 @@ class BoothOrderView(APIView):
 
         total_revenue = total_revenue_qs['total'] or 0
 
-        serializer = BoothOrderSerializer(order_complete_orders, many=True)
+        serializer = BoothOrderSerializer(order_complete_orders, many=True, context={'request': request})
         return Response({
             "status": "success",
             "message": "주문 목록 및 매출 조회 완료",
@@ -738,6 +738,7 @@ class OrderCheckView(APIView):
 
 class TableOrderGroupView(APIView):
     permission_classes = [IsAuthenticated]
+    
 
     def get(self, request):
         manager = Manager.objects.get(user=request.user)
@@ -759,9 +760,14 @@ class TableOrderGroupView(APIView):
                     order_data = []
                     for order in orders:
                         menu = order.menu_id
+                        if menu.menu_image:
+                            image_url = request.build_absolute_uri(menu.menu_image.url)
+                        else:
+                            image_url = None
+
                         order_data.append({
                             "menu_name": menu.menu_name,
-                            "menu_image": request.build_absolute_uri(menu.menu_image.url) if menu.menu_image else None,
+                            "menu_image": image_url,
                             "menu_num": order.menu_num,
                             "order_status": order.order_status
                         })
