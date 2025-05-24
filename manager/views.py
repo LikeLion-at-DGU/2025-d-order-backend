@@ -17,7 +17,7 @@ from django.core.files.base import ContentFile
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
 class CookieTokenRefreshView(APIView):
-    def get(self, request):
+    def post(self, request):
         refresh_token = request.COOKIES.get('refresh_token')
         if not refresh_token:
             return Response({
@@ -28,7 +28,6 @@ class CookieTokenRefreshView(APIView):
 
         try:
             token = RefreshToken(refresh_token)
-
 
             # 정상 리프레시 토큰일 경우 새 액세스 발급
             new_access = str(token.access_token)
