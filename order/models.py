@@ -73,6 +73,7 @@ class Order(models.Model):
     cart_id = models.ForeignKey(Cart, on_delete=models.CASCADE)
     menu_id = models.ForeignKey(Menu, on_delete=models.CASCADE)
     menu_num = models.IntegerField()
+    fixed_price = models.IntegerField(null=True, blank=True)
     menu_price = models.IntegerField(default=0)  # 주문 당시 가격(수정 구분)
     order_status = models.CharField(max_length=50)
     created_at = models.DateTimeField(null=True, blank=True)
