@@ -76,6 +76,14 @@ class ConfirmCartOrderView(APIView):
 
         for item in items:
             menu = get_object_or_404(Menu, id=item['menu_id'])
+
+            if menu.booth_id != booth:
+                return Response({
+                    "status": "fail",
+                    "message": f"{menu.menu_name}은 해당 부스의 메뉴가 아닙니다.",
+                    "code": 403
+                }, status=status.HTTP_403_FORBIDDEN)
+            
             menu_num = item['menu_num']
 
             if menu.menu_remain < menu_num:
