@@ -115,7 +115,7 @@ class ConfirmCartOrderView(APIView):
             "code": 201,
             "data": {
                 "cart_id": cart.id,
-                "table_id": table.id,
+                "table_num": table.table_num,
                 "order_ids": created_orders,
                 "total_price": total_price
             }
@@ -639,7 +639,6 @@ class OrderCheckView(APIView):
             "message": "진행 중인 주문이 존재합니다.",
             "code": 200,
             "data": {
-                "table_id": table.id,
                 "table_num": table.table_num,
                 "total_price": cart.total_price
             }
@@ -730,7 +729,6 @@ class OrderCheckView(APIView):
             "message": "결제가 확인되었습니다.",
             "code": 200,
             "data": {
-                "table_id": table.id,
                 "table_num": table.table_num,
                 "total_price": total_price
             }
