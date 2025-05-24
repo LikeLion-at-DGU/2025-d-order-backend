@@ -179,7 +179,7 @@ class ManagerLoginView(APIView):
             secure=True,      # 개발 중엔 False, 운영은 True
             samesite= None,
             max_age=7 * 24 * 60 * 60,
-            path='/manager/'
+            path='/'
         )
 
         return response
