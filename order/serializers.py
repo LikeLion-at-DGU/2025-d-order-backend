@@ -54,7 +54,7 @@ class TableOrderSerializer(serializers.ModelSerializer):
 class BoothOrderSerializer(serializers.ModelSerializer):
     menu_name = serializers.CharField(source='menu_id.menu_name', read_only=True)
     menu_price = serializers.IntegerField(source='menu_id.menu_price', read_only=True)
-    menu_image = serializers.ImageField(source='menu_id.menu_image', allow_null=True)
+    menu_image = serializers.SerializerMethodField()
     table_num = serializers.IntegerField(source='cart_id.table_id.table_num', read_only=True)
 
     class Meta:
@@ -69,6 +69,13 @@ class BoothOrderSerializer(serializers.ModelSerializer):
             'menu_image',
             'table_num'
         ]
+    def get_menu_image(self, obj):
+        request = self.context.get('request')
+        if obj.menu_id.menu_image and request:
+            return request.build_absolute_uri(obj.menu_id.menu_image.url)
+        elif obj.menu_id.menu_image:
+            return obj.menu_id.menu_image.url
+        return None
 
 class MenuSerializer(serializers.ModelSerializer):
     booth_id = serializers.PrimaryKeyRelatedField(read_only=True)

@@ -1,7 +1,6 @@
 from django.urls import path, include
 from .views import *
 from django.conf import settings
-from django.conf.urls.static import static
 
 urlpatterns = [
     path('order/confirm/', ConfirmCartOrderView.as_view(), name='confirm-cart-order'),
@@ -23,4 +22,4 @@ urlpatterns = [
     path('manager/tables/orders/', TableOrderGroupView.as_view(), name='table-order-group'),
     path('booths/<int:booth_id>/menus/', PublicMenuListView.as_view(), name='public-menu-list'),
     path('cart/payment-info/', CartPaymentInfoView.as_view()),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] 
