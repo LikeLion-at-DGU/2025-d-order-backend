@@ -13,8 +13,8 @@ class Booth(models.Model):
         help_text='부스 전용 QR 코드 이미지'
     )
 
-    # def __str__(self):
-    #     return self.name
+    def __str__(self):
+        return f"{self.id} - {self.name}"
     
 class Table(models.Model):
     id = models.AutoField(primary_key=True)
@@ -23,3 +23,9 @@ class Table(models.Model):
     table_status = models.CharField(max_length=10)
     class Meta:
         unique_together = ('booth_id', 'table_num')
+
+    def __str__(self):
+        booth = self.booth_id
+        booth_name = getattr(booth, 'name', 'Unknown')
+        booth_id = getattr(booth, 'id', '?')
+        return f"Table {self.table_num} (Booth: {booth_name}, ID: {booth_id})"
