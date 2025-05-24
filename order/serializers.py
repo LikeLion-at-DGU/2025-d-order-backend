@@ -35,6 +35,7 @@ class CartSummarySerializer(serializers.ModelSerializer):
 class TableOrderSerializer(serializers.ModelSerializer):
     menu_name = serializers.CharField(source='menu_id.menu_name', read_only=True)
     menu_price = serializers.IntegerField(source='menu_id.menu_price', read_only=True)
+    menu_image = serializers.SerializerMethodField()
 
     class Meta:
         model=Order
@@ -42,11 +43,20 @@ class TableOrderSerializer(serializers.ModelSerializer):
             'cart_id',
             'menu_id',
             'menu_name',
+            'menu_image',
             'menu_price',
             'menu_num',
             'order_status',
             'created_at'
         ]
+    def get_menu_image(self, obj):
+        request = self.context.get('request')
+        if obj.menu_id.menu_image and obj.menu_id.menu_image.name:
+            from os.path import basename
+            filename = basename(obj.menu_id.menu_image.name)
+            cleaned_path = f"/media/menu_images/{filename}"
+            return request.build_absolute_uri(cleaned_path) if request else cleaned_path
+        return None
 
 class BoothOrderSerializer(serializers.ModelSerializer):
     menu_name = serializers.CharField(source='menu_id.menu_name', read_only=True)
