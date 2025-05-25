@@ -156,19 +156,31 @@ class CancelOrUpdateOrderView(APIView):
             cart_id__table_id=table,
             cart_id__cart_status=True 
         )
-        
+
+        menu = order.menu_id
         action = request.data.get("action")
-        
+
         if action == "increase":
+            if order.menu_num >= menu.menu_remain:
+                return Response({
+                    "status": "fail",
+                    "message": f"재고({menu.menu_remain})를 초과할 수 없습니다.",
+                    "code": 400
+                }, status=400)
+
             order.menu_num += 1
             order.save()
+
+            menu.menu_remain -= 1  # ✅ 재고 차감
+            menu.save()
+
             return Response({
                 "status": "success",
                 "message": "주문 수량 1 증가",
                 "code": 200,
                 "data": {
                     "order_id": order.id,
-                    "menu_name": order.menu_id.menu_name,
+                    "menu_name": menu.menu_name,
                     "menu_num": order.menu_num
                 }
             }, status=200)
@@ -177,25 +189,33 @@ class CancelOrUpdateOrderView(APIView):
             if order.menu_num > 1:
                 order.menu_num -= 1
                 order.save()
+
+                menu.menu_remain += 1  # ✅ 재고 복원
+                menu.save()
+
                 return Response({
                     "status": "success",
                     "message": "주문 수량 1 감소",
                     "code": 200,
                     "data": {
                         "order_id": order.id,
-                        "menu_name": order.menu_id.menu_name,
+                        "menu_name": menu.menu_name,
                         "menu_num": order.menu_num
                     }
                 }, status=200)
             else:
+                menu.menu_remain += 1  # ✅ 마지막 주문 삭제 → 재고 복원
+                menu.save()
+
                 order.delete()
+
                 return Response({
                     "status": "success",
                     "message": "수량 0이 되어 주문이 삭제되었습니다.",
                     "code": 200,
                     "data": {
                         "order_id": order_id,
-                        "menu_name": order.menu_id.menu_name
+                        "menu_name": menu.menu_name
                     }
                 }, status=200)
 
@@ -204,6 +224,7 @@ class CancelOrUpdateOrderView(APIView):
             "message": "올바른 action 값이 필요합니다. ('increase' 또는 'decrease')",
             "code": 400
         }, status=400)
+
     
 class ResetTableView(APIView):
     def post(self, request, table_num):
