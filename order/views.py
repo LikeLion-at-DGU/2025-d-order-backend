@@ -101,8 +101,6 @@ class ConfirmCartOrderView(APIView):
                 order_status="장바구니",
                 created_at=now_time
             )
-            menu.menu_remain -= menu_num
-            menu.save()
             total_price += menu.menu_price * menu_num
             created_orders.append(order.id)
 
@@ -678,6 +676,9 @@ class OrderCheckView(APIView):
             order.order_status = 'order_complete'
             order.created_at = now_time
             order.save()
+
+            menu.menu_remain -= order.menu_num
+            menu.save()
 
         cart.cart_status = True
         cart.save()
