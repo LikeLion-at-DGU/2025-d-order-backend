@@ -740,7 +740,7 @@ class TableOrderGroupView(APIView):
             for cart in carts:
                 orders = Order.objects.filter(
                     cart_id=cart,
-                    order_status='order_complete'
+                    order_status__in=["order_complete", "served_complete"]
                 ).select_related('menu_id').order_by('created_at')  # ✅ 오래된 주문부터
 
                 if orders.exists():
