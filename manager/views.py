@@ -226,39 +226,32 @@ class BoothNameView(APIView):
     permission_classes = [AllowAny]  
 
     def get(self, request):
-        booth_id = request.query_params.get('booth_id')
-        if not booth_id:
+        table_num = request.query_params.get('table_num')
+
+        if not table_num:
             return Response({
                 "status": "fail",
-                "message": "bcooth_id 파라미터가 없습니다.",
+                "message": "table_num 파라미터가 없습니다.",
                 "code": 400
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2) 정수 변환 체크
         try:
-            booth_id = int(booth_id)
-        except (TypeError, ValueError):
+            # 테이블 번호로 테이블 조회
+            table = Table.objects.get(table_num=table_num)
+            booth = table.booth_id
+        except Table.DoesNotExist:
             return Response({
                 "status": "fail",
-                "message": "booth_id가 올바른 숫자가 아닙니다.",
-                "code": 400
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # 3) Booth 모델에서 바로 조회
-        try:
-            booth = Booth.objects.get(id=booth_id)
-            return Response({
-                "status": "success",
-                "message": "부스 이름 조회 성공",
-                "code": 200,
-                "data": {
-                    "booth_id": booth.id,
-                    "booth_name": booth.name
-                }
-            }, status=status.HTTP_200_OK)
-        except Booth.DoesNotExist:
-            return Response({
-                "status": "fail",
-                "message": "해당 booth_id의 부스 정보가 없습니다.",
+                "message": "해당 table_num의 테이블 정보가 없습니다.",
                 "code": 404
             }, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({
+            "status": "success",
+            "message": "부스 이름 조회 성공",
+            "code": 200,
+            "data": {
+                "booth_id": booth.id,
+                "booth_name": booth.name
+            }
+        }, status=status.HTTP_200_OK)
