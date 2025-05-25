@@ -164,7 +164,7 @@ USE_TZ = False
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = 'static/'
 
-MEDIA_URL = '/media/'
+MEDIA_URL = 'https://api.d-order.shop/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # 요청 바디 전체 제한 (예: 이미지 + 폼 데이터 전체)
