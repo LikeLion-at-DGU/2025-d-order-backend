@@ -111,7 +111,7 @@ class TableDetailView(APIView):
                  .filter(
                      cart_id__table_id=table,
                      cart_id__cart_status=True,
-                     order_status='order_complete'
+                     order_status__in=['order_complete', 'served_complete']
                  )
                  .select_related('menu_id')
                  .order_by('-created_at')
