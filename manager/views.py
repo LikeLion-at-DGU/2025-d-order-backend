@@ -223,35 +223,36 @@ class ManagerMyPageView(RetrieveUpdateAPIView):
         }, status=200)
         
 class BoothNameView(APIView):
-    permission_classes = [AllowAny]  
+    permission_classes = [AllowAny]
 
     def get(self, request):
-        table_num = request.query_params.get('table_num')
+        booth_id = request.query_params.get('booth_id')
 
-        if not table_num:
+        if not booth_id:
             return Response({
                 "status": "fail",
-                "message": "table_num 파라미터가 없습니다.",
+                "message": "booth_id 파라미터가 없습니다.",
                 "code": 400
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # 테이블 번호로 테이블 조회
-            table = Table.objects.get(table_num=table_num)
-            booth = table.booth_id
-        except Table.DoesNotExist:
+            booth = Booth.objects.get(id=booth_id)
+        except Booth.DoesNotExist:
             return Response({
                 "status": "fail",
-                "message": "해당 table_num의 테이블 정보가 없습니다.",
+                "message": "해당 booth_id의 부스 정보가 없습니다.",
                 "code": 404
             }, status=status.HTTP_404_NOT_FOUND)
 
+        table_count = Table.objects.filter(booth_id=booth).count()
+
         return Response({
             "status": "success",
-            "message": "부스 이름 조회 성공",
+            "message": "부스 이름 및 테이블 수 조회 성공",
             "code": 200,
             "data": {
                 "booth_id": booth.id,
-                "booth_name": booth.name
+                "booth_name": booth.name,
+                "table_num": table_count
             }
         }, status=status.HTTP_200_OK)
