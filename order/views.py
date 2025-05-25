@@ -706,6 +706,9 @@ class OrderCheckView(APIView):
             order.created_at = now_time
             order.save()
 
+            menu.menu_remain -= order.menu_num
+            menu.save()
+
         cart.cart_status = True
         cart.save()
 
