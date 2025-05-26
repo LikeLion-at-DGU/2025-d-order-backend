@@ -32,6 +32,8 @@ DEBUG = env('DEBUG')
 
 CSRF_TRUSTED_ORIGINS = [
     "https://api.d-order.shop",
+    'https://d-order.netlify.app',         # 손님용
+    'https://d-order-admin.netlify.app',
 ]
 
 
