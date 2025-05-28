@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 from corsheaders.defaults import default_headers
 import os, environ
 
@@ -68,8 +69,12 @@ INSTALLED_APPS = [
     'order'
 ]
 
+
 SIMPLE_JWT = {
-    "BLACKLIST_AFTER_ROTATION": True,
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=3),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=14),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
 }
 
 REST_FRAMEWORK = {

@@ -15,6 +15,8 @@ import qrcode
 from io import BytesIO
 from django.core.files.base import ContentFile
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 class CookieTokenRefreshView(APIView):
     def post(self, request):
@@ -144,6 +146,7 @@ class UsernameCheckView(APIView):
             }
         }, status=status.HTTP_200_OK)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class ManagerLoginView(APIView):
     permission_classes = [AllowAny]
 
@@ -154,30 +157,30 @@ class ManagerLoginView(APIView):
         user = serializer.validated_data['user']
         manager = serializer.validated_data['manager']
 
-        # JWT 토큰 발급
+        # JWT 발급
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
 
-        # ✅ 응답 본문에는 access만 포함
+        # 응답 반환
         response = Response({
             "message": "로그인 성공",
             "code": 200,
             "data": {
                 "manager_id": manager.pk,
                 "booth_id": manager.booth_id,
-                "access_token": access_token  # JSON에 access만 포함
+                "access_token": access_token
             }
         }, status=status.HTTP_200_OK)
 
-        # refresh_token은 HttpOnly 쿠키로만 전송
+        # ✅ 쿠키로 refresh token 전송
         response.set_cookie(
             key='refresh_token',
             value=refresh_token,
             httponly=True,
-            secure=True,      # 개발 중엔 False, 운영은 True
-            samesite= 'None',
-            max_age=7 * 24 * 60 * 60,
+            secure=True,
+            samesite='None',
+            max_age=14 * 24 * 60 * 60,  # 14일
             path='/'
         )
 
